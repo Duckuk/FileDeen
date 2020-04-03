@@ -344,12 +344,11 @@ int wmain( int argc, wchar_t* argv[] ) {
 	if ( extensionWarning )
 		cout << "WARNING: One or more file extensions are longer than three characters, which encoding does not support. Encode at your own risk." << endl;
 
-
 	cout << "Pick Mode:" << endl <<
 		" (E) Encode" << endl <<
 		" (D) Decode" << endl;
 
-	switch ( getchar() ) {
+	switch ( tolower( getchar() ) ) {
 		case 'e':
 			encodeFile( filePaths );
 			break;
