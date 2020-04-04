@@ -33,6 +33,8 @@ size_t
 DATA_LENGTH,
 METADATA_LENGTH = sizeof( INDEX )+sizeof( FILE_EXTENSION )+sizeof( DATA_LENGTH );
 
+mt19937_64 rng;
+
 void refreshMetadataLength() {
 	METADATA_LENGTH = sizeof( INDEX )+sizeof( FILE_EXTENSION )+sizeof( DATA_LENGTH );
 }
@@ -57,8 +59,6 @@ void encodeFile( vector<filesystem::path> filePaths ) {
 	bool existingBytes[sizeof( DICT )];
 	memset( existingBytes, false, sizeof( existingBytes ) );
 	fstream inputFile;
-	mt19937_64 rng;
-	rng.seed( time( NULL ) );
 	string data;
 
 	//Clean dictionary
@@ -303,6 +303,8 @@ void decodeFile( filesystem::path filePath ) {
 int wmain( int argc, wchar_t* argv[] ) {
 
 	SetConsoleTitleW( L"FileDeen" );
+
+	rng.seed( (unsigned)time( NULL ) );
 
 	vector<filesystem::path> filePaths;
 	filesystem::path filePath;
