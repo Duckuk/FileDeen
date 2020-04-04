@@ -46,7 +46,14 @@ void encodeData( char* buffer, size_t bufferSize ) {
 }
 
 void encodeFile( vector<filesystem::path> filePaths ) {
-	wstring outputFileName = to_wstring( unsigned long long( time( NULL ) ) ) + L".fed";
+
+	//Generate 3 random letters between a - z
+	uniform_int_distribution<short> dis( 0x61, 0x7A ); //a to z
+	wstring randomLetters( 3, 0x43 );
+	for ( int i = 0; i<3; i++ )
+		randomLetters[i] = dis(rng);
+
+	wstring outputFileName = to_wstring( unsigned long long( time( nullptr ) ) ) + L"_" + randomLetters + L".fed";
 	fstream outputFile( outputFileName, ios::out | ios::in | ios::binary | ios::trunc );
 
 	//Generate dictionary
