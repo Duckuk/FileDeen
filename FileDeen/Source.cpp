@@ -65,6 +65,7 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 
 	if ( !DEBUG_MODE ) printf( "Done!\n" );
 
+	if ( !DEBUG_MODE ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
 	//Generate dictionary
 	if ( DEBUG_MODE ) printf( "Generating dictionary..." );
 	fedFile.generateDictionary();
@@ -97,10 +98,10 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 		unsigned int checksum = entry.calculateChecksum();
 		entry.setChecksum( checksum );
 	}
-	printf( "Done!\n" );
+	if ( DEBUG_MODE ) printf( "Done!\n" );
 
 	//Write data
-	wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
+	if ( DEBUG_MODE ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
 	fedFile.writeToFile( outputFileName );
 	printf( "Done!\n" );
 
@@ -218,17 +219,17 @@ int wmain( int argc, wchar_t* argv[] ) {
 	rng.seed( (unsigned)time( NULL ) );
 
 	vector<filesystem::path> filePaths;
-	filesystem::path filePath;
 	if ( argc < 2 ) {
-		string buffer;
+		filesystem::path filePath;
 		while ( true ) {
+			string buffer;
 			cout << "Input full path to file: ";
 			getline( cin, buffer );
 			filePath = buffer;
-			if ( filesystem::exists( filePath ) && !filesystem::is_directory( filePath ) ) {
+			if ( filesystem::is_regular_file( filePath ) || filesystem::is_directory( filePath ) ) {
 				break;
 			}
-			cout << "Error: File does not exist" << endl << endl;
+			cout << "Error: File does not exist or is unsupported" << endl << endl;
 		}
 		filePaths.push_back( filePath );
 	}
@@ -240,20 +241,39 @@ int wmain( int argc, wchar_t* argv[] ) {
 
 	bool fail = false;
 	bool extensionWarning = false;
-	for ( const auto& filePath : filePaths ) {
-		if ( !filesystem::exists( filePath ) || filesystem::is_directory( filePath ) ) {
-			cout << "Error: " << filePath << " does not exist" << endl;
+	vector<filesystem::path> additionalPaths;
+	for ( auto it = filePaths.begin(); it!=filePaths.end(); ) {
+		filesystem::path path = *it;
+		if ( !filesystem::is_regular_file( path ) && !filesystem::is_directory( path ) ) {
+			cout << "Error: " << path << " does not exist or is unsupported" << endl;
 			fail = true;
 		}
-		if ( !extensionWarning ) {
-			if ( filePath.extension().wstring().length() > 4 ) {
+		else if ( filesystem::is_directory( path ) ) {
+			for ( const auto& entry : filesystem::directory_iterator( path ) ) {
+				if ( entry.is_regular_file() ) {
+					additionalPaths.push_back( entry );
+				}
+			}
+			it = filePaths.erase( it );
+			continue;
+		}
+		else if ( !extensionWarning ) {
+			if ( path.extension().wstring().length() > 4 ) {
 				extensionWarning = true;
 			}
 		}
+		it++;
 	}
 
+	filePaths.insert( filePaths.end(), additionalPaths.begin(), additionalPaths.end() );
+
 	if ( fail ) {
-		this_thread::sleep_for( 2s );
+		if ( DEBUG_MODE ) {
+			getchar();
+		}
+		else {
+			this_thread::sleep_for( 2s );
+		}
 		return 1;
 	}
 	if ( extensionWarning ) {
@@ -274,6 +294,8 @@ int wmain( int argc, wchar_t* argv[] ) {
 			DecodeFile( filePaths[0] );
 			break;
 	}
+	printf( "All done!\n" );
+
 	if ( DEBUG_MODE ) {
 		getchar();
 	}
