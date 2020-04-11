@@ -33,8 +33,9 @@ void FED_Entry::setFileExtension( char* c, size_t length ) {
 }
 
 void FED_Entry::setFileExtension( std::wstring s ) {
-	if ( s.size() != 4 )
+	if ( s.size() != 4 ) {
 		s.resize( 4 );
+	}
 	_fileExtension = s;
 }
 
@@ -51,8 +52,8 @@ void FED_Entry::setData( char* c, size_t length ) {
 }
 
 //Uses move semantics to account for larger file sizes
-void FED_Entry::moveData( std::string& s  ) {
-	_data = std::move(s);
+void FED_Entry::moveData( std::string& s ) {
+	_data = std::move( s );
 	_dataLength = _data.size();
 }
 
@@ -86,12 +87,12 @@ FED_Entry& FED::entry( int index ) {
 	return _entries.at( index );
 }
 
-FED::FED() : _entries(), _signature(8, 0x00), _dictionary(256, 0x00) {
+FED::FED() : _entries(), _signature( 8, 0x00 ), _dictionary( 256, 0x00 ) {
 	memset( _omittedBytes, true, sizeof( _omittedBytes ) );
 	_dictionarySize = _dictionary.size()*2;
 }
 
-void FED::setSignature(char* cSign, size_t length) {
+void FED::setSignature( char* cSign, size_t length ) {
 	memcpy( &_signature[0], cSign, length );
 };
 
@@ -101,10 +102,12 @@ void FED::cleanDictionary() {
 		fileExtension.resize( entry._fileExtension.size()*sizeof( wchar_t ) );
 		memcpy( &fileExtension[0], &entry._fileExtension[0], fileExtension.size() );
 		for ( int i = 0; i<sizeof( _omittedBytes ); i++ ) {
-			if ( memchr( &entry._data[0], i, entry._dataLength ) != NULL )
+			if ( memchr( &entry._data[0], i, entry._dataLength ) != NULL ) {
 				_omittedBytes[i] = false;
-			else if ( memchr( &fileExtension[0], i, fileExtension.size() ) != NULL )
+			}
+			else if ( memchr( &fileExtension[0], i, fileExtension.size() ) != NULL ) {
 				_omittedBytes[i] = false;
+			}
 		}
 	}
 }
@@ -144,9 +147,6 @@ void FED::moveEntry( FED_Entry& e ) {
 }
 
 void FED::delEntry( int index ) {
-	if ( index > _entries.size() ) {
-		throw std::invalid_argument( "index greater than vector size" );
-	}
 	_entries.erase( _entries.begin()+index );
 }
 

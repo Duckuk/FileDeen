@@ -26,8 +26,9 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 	//Generate 3 random letters between a - z
 	uniform_int_distribution<short> dis( 0x61, 0x7A ); //a to z
 	wstring randomLetters( 3, 0x43 );
-	for ( int i = 0; i<3; i++ )
-		randomLetters[i] = dis(rng);
+	for ( int i = 0; i<3; i++ ) {
+		randomLetters[i] = dis( rng );
+	}
 
 	wstring outputFileName = to_wstring( unsigned long long( time( nullptr ) ) ) + L"_" + randomLetters + L".fed";
 
@@ -54,7 +55,7 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 			inputFile.read( &dataBuffer[0], length );
 			inputFile.close();
 			entry.moveData( dataBuffer );
-			
+
 			fedFile.moveEntry( entry );
 
 			i++;
@@ -158,7 +159,7 @@ void DecodeFile( filesystem::path filePath ) {
 			inputFile.close();
 			break;
 		}
-		
+
 		//Read data length
 		size_t dataLength;
 		if ( DEBUG_MODE ) printf( "%u: Reading data length...", entry.index() );
@@ -170,7 +171,7 @@ void DecodeFile( filesystem::path filePath ) {
 		if ( DEBUG_MODE ) printf( "%u: Reading file extension...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setFileExtension( &buffer[0], buffer.size() );
-		if ( DEBUG_MODE ) printf( "Done!\n");
+		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Read data
 		buffer.resize( dataLength );
@@ -202,7 +203,7 @@ void DecodeFile( filesystem::path filePath ) {
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Write data
-		filesystem::path outputFileName = filePath.stem().wstring() + L"_" + to_wstring(entry.index()) + entry.fileExtension();
+		filesystem::path outputFileName = filePath.stem().wstring() + L"_" + to_wstring( entry.index() ) + entry.fileExtension();
 		wprintf( L"%u: Writing to \'%ls\'...", entry.index(), outputFileName.c_str() );
 		entry.writeToFile( outputFileName );
 		printf( "Done!\n" );
@@ -239,22 +240,25 @@ int wmain( int argc, wchar_t* argv[] ) {
 
 	bool fail = false;
 	bool extensionWarning = false;
-	for ( const auto &filePath : filePaths ) {
+	for ( const auto& filePath : filePaths ) {
 		if ( !filesystem::exists( filePath ) || filesystem::is_directory( filePath ) ) {
 			cout << "Error: " << filePath << " does not exist" << endl;
 			fail = true;
 		}
-		if ( !extensionWarning )
-			if ( filePath.extension().wstring().length() > 4 )
+		if ( !extensionWarning ) {
+			if ( filePath.extension().wstring().length() > 4 ) {
 				extensionWarning = true;
+			}
+		}
 	}
 
 	if ( fail ) {
 		this_thread::sleep_for( 2s );
 		return 1;
 	}
-	if ( extensionWarning )
+	if ( extensionWarning ) {
 		cout << "WARNING: One or more file extensions are longer than three characters, which encoding does not support. Encode at your own risk." << endl;
+	}
 
 	cout << "Pick Mode:" << endl <<
 		" (E) Encode" << endl <<
