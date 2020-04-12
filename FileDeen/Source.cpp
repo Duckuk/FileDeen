@@ -130,12 +130,12 @@ void DecodeFile( filesystem::path filePath ) {
 	if ( DEBUG_MODE ) printf( "Done!\n" );
 
 	//Check version
-	buffer.resize( 2 );
 	if ( DEBUG_MODE ) printf( "Checking version..." );
 	unsigned char versionByte = inputFile.peek();
 	if ( versionByte != fedFile.version() ) {
 		short nextTwoBytes;
 		inputFile.read( (char*)&nextTwoBytes, sizeof( short ) );
+		inputFile.seekg( -(signed)sizeof( short ), ios::cur );
 		if ( nextTwoBytes % 2 == 0 && nextTwoBytes <= 512 ) {
 			printf( "Error:	FeD file was encoded before version checking was added.\nComplete decoding is not guaranteed\n" );
 		}
