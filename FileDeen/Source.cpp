@@ -14,7 +14,7 @@
 using namespace std;
 
 const bool
-DEBUG_MODE = true;
+DEBUG_MODE = false;
 
 const unsigned char
 SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
@@ -134,8 +134,8 @@ void DecodeFile( filesystem::path filePath ) {
 	unsigned char versionByte = inputFile.peek();
 	if ( versionByte != fedFile.version() ) {
 		short nextTwoBytes;
-		inputFile.read( (char*)&nextTwoBytes, sizeof( short ) );
-		inputFile.seekg( -(signed)sizeof( short ), ios::cur );
+		inputFile.read( (char*)&nextTwoBytes, sizeof( nextTwoBytes ) );
+		inputFile.seekg( -(signed)sizeof( nextTwoBytes ), ios::cur );
 		if ( nextTwoBytes % 2 == 0 && nextTwoBytes <= 512 ) {
 			printf( "Error:	FeD file was encoded before version checking was added.\nComplete decoding is not guaranteed\n" );
 		}
