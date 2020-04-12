@@ -14,7 +14,7 @@
 using namespace std;
 
 const bool
-DEBUG_MODE = false;
+DEBUG_MODE = true;
 
 const unsigned char
 SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
@@ -186,7 +186,7 @@ void DecodeFile( filesystem::path filePath ) {
 		if ( DEBUG_MODE ) printf( "Reading index..." );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setIndex( &buffer[0], buffer.size() );
-		if ( DEBUG_MODE && entry.index() != 0xFFFFFFFF ) printf( "Done!: %u\n", entry.index() );
+		if ( DEBUG_MODE && entry.index() != 0xFFFFFFFF ) printf( "Done!: %.3u\n", entry.index() );
 
 		if ( entry.index() == 0xFFFFFFFF ) {
 			if ( DEBUG_MODE ) printf( "End of file found\n" );
@@ -196,49 +196,49 @@ void DecodeFile( filesystem::path filePath ) {
 
 		//Read data length
 		size_t dataLength;
-		if ( DEBUG_MODE ) printf( "%u: Reading data length...", entry.index() );
+		if ( DEBUG_MODE ) printf( "%.3u: Reading data length...", entry.index() );
 		inputFile.read( (char*)&dataLength, sizeof( dataLength ) );
 		if ( DEBUG_MODE ) printf( "Done!: %zu\n", dataLength );
 
 		//Read file extension
 		buffer.resize( entry.fileExtension().size()*sizeof( wchar_t ) );
-		if ( DEBUG_MODE ) printf( "%u: Reading file extension...", entry.index() );
+		if ( DEBUG_MODE ) printf( "%.3u: Reading file extension...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setFileExtension( &buffer[0], buffer.size() );
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Read data
 		buffer.resize( dataLength );
-		if ( DEBUG_MODE ) printf( "%u: Reading data...", entry.index() );
+		if ( DEBUG_MODE ) printf( "%.3u: Reading data...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.moveData( buffer );
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Check checksum
 		buffer.resize( sizeof( entry.checksum() ) );
-		if ( DEBUG_MODE ) printf( "%u: Checking checksum...", entry.index() );
+		if ( DEBUG_MODE ) printf( "%.3u: Checking checksum...", entry.index() );
 		unsigned int checksum = entry.calculateChecksum();
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setChecksum( &buffer[0], buffer.size() );
 		if ( entry.checksum() != checksum ) {
-			printf( "Error: Checksum mismatch, skipping %u\n", entry.index() );
+			printf( "Error: Checksum mismatch, skipping %.3u\n", entry.index() );
 			continue;
 		}
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Translate extension
-		if ( DEBUG_MODE ) printf( "%u: Translating extension...", entry.index() );
+		if ( DEBUG_MODE ) printf( "%.3u: Translating extension...", entry.index() );
 		entry.translateExtension( fedFile.dictionary() );
 		if ( DEBUG_MODE ) printf( "Done!: \'%ls\'\n", entry.fileExtension().c_str() );
 
 		//Translate data
-		if ( DEBUG_MODE ) printf( "%u: Translating data...", entry.index() );
+		if ( DEBUG_MODE ) printf( "%.3u: Translating data...", entry.index() );
 		entry.translateData( fedFile.dictionary() );
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Write data
 		filesystem::path outputFileName = filePath.stem().wstring() + L"_" + to_wstring( entry.index() ) + entry.fileExtension();
-		wprintf( L"%u: Writing to \'%ls\'...", entry.index(), outputFileName.c_str() );
+		wprintf( L"%.3u: Writing to \'%ls\'...", entry.index(), outputFileName.c_str() );
 		entry.writeToFile( outputFileName );
 		printf( "Done!\n" );
 	}
