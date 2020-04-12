@@ -7,57 +7,57 @@
 #include "CRC.h"
 using namespace FileDeen;
 
-FED_Entry::FED_Entry() {
+FeD_Entry::FeD_Entry() {
 	_index = NULL;
 	_fileExtension.resize( extensionSize/2 );
 	_dataLength = 0;
 	_checksum = NULL;
 }
 
-void FED_Entry::setIndex( char* c, size_t length ) {
+void FeD_Entry::setIndex( char* c, size_t length ) {
 	memcpy( &_index, c, length );
 }
 
-void FED_Entry::setIndex( unsigned int i ) {
+void FeD_Entry::setIndex( unsigned int i ) {
 	_index = i;
 }
 
-void FED_Entry::translateExtension( std::string dict ) {
+void FeD_Entry::translateExtension( std::string dict ) {
 	for ( size_t i = 0; i<_fileExtension.size(); i++ ) {
 		_fileExtension[i] = dict[(unsigned char)_fileExtension[i]];
 	}
 }
 
-void FED_Entry::setFileExtension( char* c, size_t length ) {
+void FeD_Entry::setFileExtension( char* c, size_t length ) {
 	memcpy( &_fileExtension[0], c, length );
 }
 
-void FED_Entry::setFileExtension( std::wstring s ) {
+void FeD_Entry::setFileExtension( std::wstring s ) {
 	if ( s.size() != extensionSize/2 ) {
 		s.resize( extensionSize/2 );
 	}
 	_fileExtension = s;
 }
 
-void FED_Entry::translateData( std::string dict ) {
+void FeD_Entry::translateData( std::string dict ) {
 	for ( size_t i = 0; i<_data.size(); i++ ) {
 		_data[i] = dict[(unsigned char)_data[i]];
 	}
 }
 
-void FED_Entry::setData( char* c, size_t length ) {
+void FeD_Entry::setData( char* c, size_t length ) {
 	_data.resize( length );
 	_dataLength = length;
 	memcpy( &_data[0], c, length );
 }
 
 //Uses move semantics to account for larger file sizes
-void FED_Entry::moveData( std::string& s ) {
+void FeD_Entry::moveData( std::string& s ) {
 	_data = std::move( s );
 	_dataLength = _data.size();
 }
 
-unsigned int FED_Entry::calculateChecksum() {
+unsigned int FeD_Entry::calculateChecksum() {
 	std::string checksumData;
 	checksumData.append( (const char*)&_index, sizeof( _index ) );
 	checksumData.append( (const char*)&_dataLength, sizeof( _dataLength ) );
@@ -67,36 +67,36 @@ unsigned int FED_Entry::calculateChecksum() {
 	return checksum;
 }
 
-void FED_Entry::setChecksum( char* c, size_t length ) {
+void FeD_Entry::setChecksum( char* c, size_t length ) {
 	memcpy( &_checksum, c, length );
 }
 
-void FED_Entry::setChecksum( unsigned int i ) {
+void FeD_Entry::setChecksum( unsigned int i ) {
 	_checksum = i;
 }
 
-void FED_Entry::writeToFile( std::filesystem::path filePath ) {
+void FeD_Entry::writeToFile( std::filesystem::path filePath ) {
 	std::fstream outputFile( filePath, std::ios::out | std::ios::binary | std::ios::trunc );
 	outputFile.write( &_data[0], _dataLength );
 	outputFile.close();
 }
 
-
-
-FED_Entry& FED::entry( int index ) {
+FeD_Entry& FeD::entry( int index ) {
 	return _entries.at( index );
 }
 
-FED::FED() : _entries(), _signature( signSize, 0x00 ), _dictionary( maxDictSize/2, 0x00 ) {
+
+
+FeD::FeD() : _entries(), _signature( signSize, 0x00 ), _dictionary( maxDictSize/2, 0x00 ) {
 	memset( _omittedBytes, true, sizeof( _omittedBytes ) );
 	_dictionarySize = _dictionary.size()*2;
 }
 
-void FED::setSignature( char* cSign, size_t length ) {
+void FeD::setSignature( char* cSign, size_t length ) {
 	memcpy( &_signature[0], cSign, length );
 };
 
-void FED::cleanDictionary() {
+void FeD::cleanDictionary() {
 	for ( auto& entry : _entries ) {
 		std::string fileExtension;
 		fileExtension.resize( entry._fileExtension.size()*sizeof( wchar_t ) );
@@ -112,24 +112,24 @@ void FED::cleanDictionary() {
 	}
 }
 
-void FED::generateDictionary() {
+void FeD::generateDictionary() {
 	for ( int i = 0; i<_dictionary.size(); i++ ) {
 		_dictionary[i] = i;
 	}
 }
 
-void FED::randomizeDictionary() {
+void FeD::randomizeDictionary() {
 	std::mt19937_64 rng;
 	rng.seed( (unsigned)time( NULL ) );
 	std::shuffle( _dictionary.begin(), _dictionary.end(), rng );
 }
 
-void FED::setDictionary( char* cDict, size_t length ) {
+void FeD::setDictionary( char* cDict, size_t length ) {
 	memcpy( &_dictionary[0], cDict, length );
 }
 
 
-void FED::calculateDictSize() {
+void FeD::calculateDictSize() {
 	for ( int i = 0; i<sizeof( _omittedBytes ); i++ ) {
 		if ( _omittedBytes[i] ) {
 			_dictionarySize--; _dictionarySize--;
@@ -137,30 +137,31 @@ void FED::calculateDictSize() {
 	}
 }
 
-void FED::addEntry( FED_Entry e ) {
+void FeD::addEntry( FeD_Entry e ) {
 	_entries.push_back( e );
 }
 
 //Uses move semantics to account for larger file sizes
-void FED::moveEntry( FED_Entry& e ) {
+void FeD::moveEntry( FeD_Entry& e ) {
 	_entries.push_back( std::move( e ) );
 }
 
-void FED::delEntry( int index ) {
+void FeD::delEntry( int index ) {
 	_entries.erase( _entries.begin()+index );
 }
 
-void FED::translateEntries( std::string dictionary ) {
+void FeD::translateEntries( std::string dictionary ) {
 	for ( auto& entry : _entries ) {
 		entry.translateExtension( dictionary );
 		entry.translateData( dictionary );
 	}
 }
 
-void FED::writeToFile( std::filesystem::path fileName ) {
+void FeD::writeToFile( std::filesystem::path fileName ) {
 	std::fstream outputFile( fileName, std::ios::out | std::ios::binary | std::ios::trunc );
 
 	outputFile.write( &_signature[0], _signature.size() );
+	outputFile.put( _versionByte );
 	outputFile.write( (const char*)&_dictionarySize, sizeof( _dictionarySize ) );
 	for ( int i = 0; i<_dictionary.size(); i++ ) {
 		if ( !_omittedBytes[i] ) {

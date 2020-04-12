@@ -3,18 +3,20 @@
 namespace FileDeen {
 	
 	const int signSize = 8,
+		versionSize = 1,
 		dictLengthSize = sizeof( short ),
 		maxDictSize = 512,
-		maxMetadataSize = signSize+dictLengthSize+maxDictSize;
+		maxMetadataSize = signSize+versionSize+dictLengthSize+maxDictSize;
+
 	const int indexSize = sizeof( int ),
 		dataLengthSize = sizeof( size_t ),
 		extensionSize = 8,
 		checksumSize = sizeof( unsigned int ),
 		entryMetadataSize = indexSize+dataLengthSize+extensionSize+checksumSize;
 
-	class FED_Entry {
+	class FeD_Entry {
 	public:
-		FED_Entry();
+		FeD_Entry();
 
 		void setIndex( char*, size_t );
 		void setIndex( unsigned int );
@@ -40,19 +42,21 @@ namespace FileDeen {
 		void writeToFile( std::filesystem::path );
 
 	private:
-		friend class FED;
+		friend class FeD;
 		unsigned int _index, _checksum;
 		size_t _dataLength;
 		std::wstring _fileExtension;
 		std::string _data;
 	};
 
-	class FED {
+	class FeD {
 	public:
-		FED();
+		FeD();
 
 		void setSignature(char*, size_t);
 		std::string signature() const { return _signature; };
+
+		const unsigned char version() const { return _versionByte; };
 
 		void cleanDictionary();
 		void generateDictionary();
@@ -63,20 +67,21 @@ namespace FileDeen {
 		void calculateDictSize();
 		short dictSize() const { return _dictionarySize; };
 
-		void addEntry( FED_Entry );
-		void moveEntry( FED_Entry& );
+		void addEntry( FeD_Entry );
+		void moveEntry( FeD_Entry& );
 		void delEntry( int );
 		void translateEntries( std::string );
-		FED_Entry& entry( int );
-		std::vector<FED_Entry> entries() const { return _entries; };
+		FeD_Entry& entry( int );
+		std::vector<FeD_Entry> entries() const { return _entries; };
 		int numEntries() const { return _entries.size(); };
-		
+
 		void writeToFile( std::filesystem::path );
 
 	private:
-		std::vector<FED_Entry> _entries;
+		const unsigned char _versionByte = 0x03;
 		std::string _signature, _dictionary;
 		short _dictionarySize;
+		std::vector<FeD_Entry> _entries;
 		bool _omittedBytes[256];
 	};
 }

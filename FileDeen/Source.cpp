@@ -33,17 +33,17 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 
 	wstring outputFileName = to_wstring( unsigned long long( time( nullptr ) ) ) + L"_" + randomLetters + L".fed";
 
-	FileDeen::FED fedFile;
+	FileDeen::FeD fedFile;
 	fedFile.setSignature( (char*)SIGN, 8 );
 
 	if ( !DEBUG_MODE ) printf( "Reading files.." );
 
-	//Create FED entries
+	//Create FeD entries
 	{
 		int i = 0;
 		for ( const auto& filePath : filePaths ) {
 			if ( DEBUG_MODE ) wprintf( L"%ls: Creating entry...", filePath.filename().wstring().c_str() );
-			FileDeen::FED_Entry entry;
+			FileDeen::FeD_Entry entry;
 
 			entry.setIndex( i );
 			entry.setFileExtension( filePath.extension() );
@@ -95,7 +95,7 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 	//Generate checksums
 	if ( DEBUG_MODE ) printf( "Generating checksums..." );
 	for ( int i = 0; i<fedFile.numEntries(); i++ ) {
-		FileDeen::FED_Entry& entry = fedFile.entry( i );
+		FileDeen::FeD_Entry& entry = fedFile.entry( i );
 		unsigned int checksum = entry.calculateChecksum();
 		entry.setChecksum( checksum );
 	}
@@ -111,7 +111,7 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 
 void DecodeFile( filesystem::path filePath ) {
 
-	FileDeen::FED fedFile;
+	FileDeen::FeD fedFile;
 
 	fstream inputFile;
 	inputFile.open( filePath, fstream::in | fstream::binary );
@@ -123,11 +123,43 @@ void DecodeFile( filesystem::path filePath ) {
 	if ( DEBUG_MODE ) printf( "Checking signature..." );
 	inputFile.read( &buffer[0], sizeof( SIGN ) );
 	if ( memcmp( &buffer[0], SIGN, sizeof( SIGN ) ) != NULL ) {
-		printf( "Error: File is not a FED file\n" );
+		printf( "Error: File is not a FeD file\n" );
 		return;
 	}
 	fedFile.setSignature( &buffer[0], sizeof( SIGN ) );
 	if ( DEBUG_MODE ) printf( "Done!\n" );
+
+	//Check version
+	buffer.resize( 2 );
+	if ( DEBUG_MODE ) printf( "Checking version..." );
+	unsigned char versionByte = inputFile.peek();
+	if ( versionByte != fedFile.version() ) {
+		short nextTwoBytes;
+		inputFile.read( (char*)&nextTwoBytes, sizeof( short ) );
+		if ( nextTwoBytes % 2 == 0 && nextTwoBytes <= 512 ) {
+			printf( "Error:	FeD file was encoded before version checking was added.\nComplete decoding is not guaranteed\n" );
+		}
+		else if ( versionByte < fedFile.version() ) {
+			printf( "Error: FeD file was encoded with past encoding scheme \'v%u\', whereas the current decoding scheme is \'v%u\'.\nComplete decoding is not guaranteed\n", versionByte, fedFile.version() );
+			inputFile.seekg( 1, ios::cur );
+		}
+		else if ( versionByte > fedFile.version() ) {
+			printf( "Error: FeD file was encoded with future encoding scheme \'v%u\', whereas the current decoding scheme is \'v%u\'.\nComplete decoding is not guaranteed.\n", versionByte, fedFile.version() );
+			inputFile.seekg( 1, ios::cur );
+		}
+		printf( "Do you wish to continue? (y/n): " );
+		if ( getchar() == 'n' ) {
+			cin.ignore();
+			return;
+		}
+		else {
+			cin.ignore();
+		}
+	}
+	else {
+		if ( DEBUG_MODE ) printf( "Done!: \'v%u\'\n", versionByte );
+		inputFile.seekg( 1, ios::cur );
+	}
 
 	//Read dictionary size
 	short dictionarySize;
@@ -136,7 +168,7 @@ void DecodeFile( filesystem::path filePath ) {
 	if ( DEBUG_MODE ) printf( "Done!: %hd\n", dictionarySize );
 
 	//Read dictionary
-	string dictionary( dictionarySize/2, 0x00 );
+	string dictionary( FileDeen::maxDictSize/2, 0x00 );
 	buffer.resize( 2 );
 	if ( DEBUG_MODE ) printf( "Reading dictionary..." );
 	for ( short i = 0; i<dictionarySize/2; i++ ) {
@@ -147,7 +179,7 @@ void DecodeFile( filesystem::path filePath ) {
 	if ( DEBUG_MODE ) printf( "Done!\n" );
 
 	while ( true ) {
-		FileDeen::FED_Entry entry;
+		FileDeen::FeD_Entry entry;
 
 		//Read index
 		buffer.resize( sizeof( entry.index() ) );
