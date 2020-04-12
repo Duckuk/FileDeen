@@ -2,6 +2,16 @@
 
 namespace FileDeen {
 	
+	const int signSize = 8,
+		dictLengthSize = sizeof( short ),
+		maxDictSize = 512,
+		maxMetadataSize = signSize+dictLengthSize+maxDictSize;
+	const int indexSize = sizeof( int ),
+		dataLengthSize = sizeof( size_t ),
+		extensionSize = 8,
+		checksumSize = sizeof( unsigned int ),
+		entryMetadataSize = indexSize+dataLengthSize+extensionSize+checksumSize;
+
 	class FED_Entry {
 	public:
 		FED_Entry();

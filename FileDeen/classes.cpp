@@ -9,7 +9,7 @@ using namespace FileDeen;
 
 FED_Entry::FED_Entry() {
 	_index = NULL;
-	_fileExtension.resize( 4 );
+	_fileExtension.resize( extensionSize/2 );
 	_dataLength = 0;
 	_checksum = NULL;
 }
@@ -33,8 +33,8 @@ void FED_Entry::setFileExtension( char* c, size_t length ) {
 }
 
 void FED_Entry::setFileExtension( std::wstring s ) {
-	if ( s.size() != 4 ) {
-		s.resize( 4 );
+	if ( s.size() != extensionSize/2 ) {
+		s.resize( extensionSize/2 );
 	}
 	_fileExtension = s;
 }
@@ -87,7 +87,7 @@ FED_Entry& FED::entry( int index ) {
 	return _entries.at( index );
 }
 
-FED::FED() : _entries(), _signature( 8, 0x00 ), _dictionary( 256, 0x00 ) {
+FED::FED() : _entries(), _signature( signSize, 0x00 ), _dictionary( maxDictSize/2, 0x00 ) {
 	memset( _omittedBytes, true, sizeof( _omittedBytes ) );
 	_dictionarySize = _dictionary.size()*2;
 }

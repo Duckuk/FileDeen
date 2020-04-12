@@ -1,12 +1,13 @@
 #define CRCPP_USE_CPP11
 
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
-#include <thread>
 #include <string>
+#include <thread>
 #include <windows.h>
 #include "CRC.h"
 #include "classes.h"
@@ -238,15 +239,14 @@ int wmain( int argc, wchar_t* argv[] ) {
 			filePaths.push_back( argv[i] );
 		}
 	}
-
-	bool fail = false;
+	
 	bool extensionWarning = false;
 	vector<filesystem::path> additionalPaths;
 	for ( auto it = filePaths.begin(); it!=filePaths.end(); ) {
 		filesystem::path path = *it;
 		if ( !filesystem::is_regular_file( path ) && !filesystem::is_directory( path ) ) {
-			cout << "Error: " << path << " does not exist or is unsupported" << endl;
-			fail = true;
+			cout << "Error: " << path << " does not exist or is unsupported. It will not be encoded." << endl;
+			it = filePaths.erase( it );
 		}
 		else if ( filesystem::is_directory( path ) ) {
 			for ( const auto& entry : filesystem::directory_iterator( path ) ) {
@@ -255,34 +255,44 @@ int wmain( int argc, wchar_t* argv[] ) {
 				}
 			}
 			it = filePaths.erase( it );
-			continue;
 		}
-		else if ( !extensionWarning ) {
+		else {
+			it++;
+		}
+		if ( !extensionWarning ) {
 			if ( path.extension().wstring().length() > 4 ) {
 				extensionWarning = true;
 			}
 		}
-		it++;
 	}
-
 	filePaths.insert( filePaths.end(), additionalPaths.begin(), additionalPaths.end() );
-
-	if ( fail ) {
-		if ( DEBUG_MODE ) {
-			getchar();
-		}
-		else {
-			this_thread::sleep_for( 2s );
-		}
-		return 1;
+	size_t approximateSize = FileDeen::maxMetadataSize+(FileDeen::entryMetadataSize*filePaths.size());
+	for ( const auto& path : filePaths ) {
+		approximateSize += filesystem::file_size( path );
 	}
+
+	double approximateSizeConverted = (double)approximateSize;
+	int sizeUsed;
+	string sizes[4] = { " bytes", "KB", "MB", "GB" };
+	for ( double i = 0; i<4; i++ ) {
+		double kbSize = pow( 1024., i+1 );
+		if ( approximateSize<kbSize ) {
+			for ( int x = 0; x<i; x++ ) {
+				approximateSizeConverted /= 1024.;
+			}
+			sizeUsed = i;
+			break;
+		}
+	}
+
 	if ( extensionWarning ) {
 		cout << "WARNING: One or more file extensions are longer than three characters, which encoding does not support. Encode at your own risk." << endl;
 	}
 
-	cout << "Pick Mode:" << endl <<
-		" (E) Encode" << endl <<
-		" (D) Decode" << endl;
+	printf( "Pick Mode:\n"
+		" (E) Encode [Approximate File Size: %.2f%s]\n"
+		" (D) Decode\n",
+		approximateSizeConverted, sizes[sizeUsed].c_str());
 
 	switch ( tolower( getchar() ) ) {
 		case 'e':
