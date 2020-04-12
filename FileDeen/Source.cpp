@@ -221,7 +221,7 @@ void DecodeFile( filesystem::path filePath ) {
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setChecksum( &buffer[0], buffer.size() );
 		if ( entry.checksum() != checksum ) {
-			printf( "Error: Checksum mismatch, skipping\n" );
+			printf( "Error: Checksum mismatch, skipping %u\n", entry.index() );
 			continue;
 		}
 		if ( DEBUG_MODE ) printf( "Done!\n" );
