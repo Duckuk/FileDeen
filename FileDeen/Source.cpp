@@ -247,7 +247,7 @@ void DecodeFile( filesystem::path filePath ) {
 
 int wmain( int argc, wchar_t* argv[] ) {
 
-	SetConsoleTitleW( L"FileDeen" );
+	SetConsoleTitleW( L"FileDeen v3" );
 
 	rng.seed( (unsigned)time( NULL ) );
 
