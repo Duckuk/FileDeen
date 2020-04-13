@@ -10,7 +10,7 @@
 #include <thread>
 #include <windows.h>
 #include "CRC.h"
-#include "classes.h"
+#include "filedeen.h"
 using namespace std;
 
 const bool

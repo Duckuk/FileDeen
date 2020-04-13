@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
-#include "classes.h"
+#include "filedeen.h"
 #include "CRC.h"
 using namespace FileDeen;
 
