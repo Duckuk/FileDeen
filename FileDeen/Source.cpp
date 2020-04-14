@@ -12,6 +12,7 @@
 #include "CRC.h"
 #include "filedeen.h"
 using namespace std;
+namespace fs = filesystem;
 
 const bool
 DEBUG_MODE = false;
@@ -22,7 +23,7 @@ SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
 
 mt19937_64 rng;
 
-void EncodeFile( vector<filesystem::path> filePaths ) {
+void EncodeFile( vector<fs::path> filePaths ) {
 
 	//Generate 3 random letters between a - z
 	uniform_int_distribution<short> dis( 0x61, 0x7A ); //a to z
@@ -42,25 +43,53 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 	{
 		int i = 0;
 		for ( const auto& filePath : filePaths ) {
-			if ( DEBUG_MODE ) wprintf( L"%ls: Creating entry...", filePath.filename().wstring().c_str() );
-			FileDeen::FeD_Entry entry;
+			if ( fs::is_directory( filePath ) ) {
+				for ( const auto& dirEntry : fs::recursive_directory_iterator( filePath ) ) {
+					if ( dirEntry.is_regular_file() ) {
+						fs::path relativePath = fs::relative( dirEntry.path(), filePath.parent_path() );
+						if ( DEBUG_MODE ) wprintf( L"%ls: Creating entry...", relativePath.wstring().c_str() );
+						FileDeen::FeD_Entry entry;
 
-			entry.setIndex( i );
-			entry.setFileExtension( filePath.extension() );
+						entry.setIndex( i );
+						entry.setPath( relativePath );
 
-			fstream inputFile( filePath, ios::in | ios::binary | ios::ate );
-			size_t length = inputFile.tellg();
-			inputFile.seekg( 0 );
+						fstream inputFile( dirEntry.path(), ios::in | ios::binary | ios::ate );
+						size_t length = inputFile.tellg();
+						inputFile.seekg( 0 );
 
-			std::string dataBuffer( length, 0x00 );
-			inputFile.read( &dataBuffer[0], length );
-			inputFile.close();
-			entry.moveData( dataBuffer );
+						std::string dataBuffer( length, 0x00 );
+						inputFile.read( &dataBuffer[0], length );
+						inputFile.close();
+						entry.moveData( dataBuffer );
 
-			fedFile.moveEntry( entry );
+						fedFile.moveEntry( entry );
 
-			i++;
-			if ( DEBUG_MODE ) printf( "Done!\n" );
+						if ( DEBUG_MODE ) printf( "Done!\n" );
+						i++;
+					}
+				}
+			}
+			else {
+				if ( DEBUG_MODE ) wprintf( L"%ls: Creating entry...", filePath.filename().wstring().c_str() );
+				FileDeen::FeD_Entry entry;
+
+				entry.setIndex( i );
+				entry.setPath( fs::relative( filePath, filePath.parent_path() ) );
+
+				fstream inputFile( filePath, ios::in | ios::binary | ios::ate );
+				size_t length = inputFile.tellg();
+				inputFile.seekg( 0 );
+
+				std::string dataBuffer( length, 0x00 );
+				inputFile.read( &dataBuffer[0], length );
+				inputFile.close();
+				entry.moveData( dataBuffer );
+
+				fedFile.moveEntry( entry );
+
+				if ( DEBUG_MODE ) printf( "Done!\n" );
+				i++;
+			}
 		}
 	}
 
@@ -109,7 +138,7 @@ void EncodeFile( vector<filesystem::path> filePaths ) {
 	return;
 }
 
-void DecodeFile( filesystem::path filePath ) {
+void DecodeFile( fs::path filePath ) {
 
 	FileDeen::FeD fedFile;
 
@@ -194,18 +223,18 @@ void DecodeFile( filesystem::path filePath ) {
 			break;
 		}
 
+		//Read path
+		buffer.resize( FileDeen::pathSize );
+		if ( DEBUG_MODE ) printf( "%.3u: Reading path...", entry.index() );
+		inputFile.read( &buffer[0], buffer.size() );
+		entry.setPath( &buffer[0], buffer.size() );
+		if ( DEBUG_MODE ) printf( "Done!\n" );
+
 		//Read data length
 		size_t dataLength;
 		if ( DEBUG_MODE ) printf( "%.3u: Reading data length...", entry.index() );
 		inputFile.read( (char*)&dataLength, sizeof( dataLength ) );
 		if ( DEBUG_MODE ) printf( "Done!: %zu\n", dataLength );
-
-		//Read file extension
-		buffer.resize( entry.fileExtension().size()*sizeof( wchar_t ) );
-		if ( DEBUG_MODE ) printf( "%.3u: Reading file extension...", entry.index() );
-		inputFile.read( &buffer[0], buffer.size() );
-		entry.setFileExtension( &buffer[0], buffer.size() );
-		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Read data
 		buffer.resize( dataLength );
@@ -227,9 +256,9 @@ void DecodeFile( filesystem::path filePath ) {
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Translate extension
-		if ( DEBUG_MODE ) printf( "%.3u: Translating extension...", entry.index() );
-		entry.translateExtension( fedFile.dictionary() );
-		if ( DEBUG_MODE ) printf( "Done!: \'%ls\'\n", entry.fileExtension().c_str() );
+		if ( DEBUG_MODE ) printf( "%.3u: Translating path...", entry.index() );
+		entry.translatePath( fedFile.dictionary() );
+		if ( DEBUG_MODE ) printf( "Done!: \'%ls\'\n", entry.path().c_str() );
 
 		//Translate data
 		if ( DEBUG_MODE ) printf( "%.3u: Translating data...", entry.index() );
@@ -237,7 +266,8 @@ void DecodeFile( filesystem::path filePath ) {
 		if ( DEBUG_MODE ) printf( "Done!\n" );
 
 		//Write data
-		filesystem::path outputFileName = filePath.stem().wstring() + L"_" + to_wstring( entry.index() ) + entry.fileExtension();
+		fs::path outputFileName = filePath.stem().wstring() + L"\\" + entry.path().parent_path().wstring() + L"\\" + to_wstring( entry.index() ) + entry.path().extension().wstring();
+		fs::create_directories( outputFileName.parent_path() );
 		wprintf( L"%.3u: Writing to \'%ls\'...", entry.index(), outputFileName.c_str() );
 		entry.writeToFile( outputFileName );
 		printf( "Done!\n" );
@@ -247,19 +277,19 @@ void DecodeFile( filesystem::path filePath ) {
 
 int wmain( int argc, wchar_t* argv[] ) {
 
-	SetConsoleTitleW( L"FileDeen v3" );
+	SetConsoleTitleW( L"FileDeen | Encoding Scheme: v4" );
 
 	rng.seed( (unsigned)time( NULL ) );
 
-	vector<filesystem::path> filePaths;
+	vector<fs::path> filePaths;
 	if ( argc < 2 ) {
-		filesystem::path filePath;
+		fs::path filePath;
 		while ( true ) {
 			string buffer;
 			cout << "Input full path to file: ";
 			getline( cin, buffer );
 			filePath = buffer;
-			if ( filesystem::is_regular_file( filePath ) || filesystem::is_directory( filePath ) ) {
+			if ( fs::is_regular_file( filePath ) || fs::is_directory( filePath ) ) {
 				break;
 			}
 			cout << "Error: File does not exist or is unsupported" << endl << endl;
@@ -273,22 +303,23 @@ int wmain( int argc, wchar_t* argv[] ) {
 	}
 	
 	bool extensionWarning = false;
-	vector<filesystem::path> additionalPaths;
+	size_t approximateSize = FileDeen::maxMetadataSize;
 	for ( auto it = filePaths.begin(); it!=filePaths.end(); ) {
-		filesystem::path path = *it;
-		if ( !filesystem::is_regular_file( path ) && !filesystem::is_directory( path ) ) {
+		fs::path path = *it;
+		if ( !fs::is_regular_file( path ) && !fs::is_directory( path ) ) {
 			cout << "Error: " << path << " does not exist or is unsupported. It will not be encoded." << endl;
 			it = filePaths.erase( it );
 		}
-		else if ( filesystem::is_directory( path ) ) {
-			for ( const auto& entry : filesystem::directory_iterator( path ) ) {
+		else if ( fs::is_directory( path ) ) {
+			for ( const auto& entry : fs::recursive_directory_iterator( path ) ) {
 				if ( entry.is_regular_file() ) {
-					additionalPaths.push_back( entry );
+					approximateSize += fs::file_size( entry ) + FileDeen::entryMetadataSize;
 				}
 			}
-			it = filePaths.erase( it );
+			it++;
 		}
 		else {
+			approximateSize += fs::file_size( path ) + FileDeen::entryMetadataSize;
 			it++;
 		}
 		if ( !extensionWarning ) {
@@ -296,11 +327,6 @@ int wmain( int argc, wchar_t* argv[] ) {
 				extensionWarning = true;
 			}
 		}
-	}
-	filePaths.insert( filePaths.end(), additionalPaths.begin(), additionalPaths.end() );
-	size_t approximateSize = FileDeen::maxMetadataSize+(FileDeen::entryMetadataSize*filePaths.size());
-	for ( const auto& path : filePaths ) {
-		approximateSize += filesystem::file_size( path );
 	}
 
 	double approximateSizeConverted = (double)approximateSize;

@@ -10,9 +10,9 @@ namespace FileDeen {
 
 	const int indexSize = sizeof( int ),
 		dataLengthSize = sizeof( size_t ),
-		extensionSize = 8,
+		pathSize = 256*sizeof( wchar_t ),
 		checksumSize = sizeof( unsigned int ),
-		entryMetadataSize = indexSize+dataLengthSize+extensionSize+checksumSize;
+		entryMetadataSize = indexSize+pathSize+dataLengthSize+checksumSize;
 
 	class FeD_Entry {
 	public:
@@ -22,12 +22,12 @@ namespace FileDeen {
 		void setIndex( unsigned int );
 		unsigned int index() const { return _index; };
 
-		size_t dataLength() const { return _dataLength; };
+		void translatePath( std::string );
+		void setPath( char*, size_t );
+		void setPath( std::wstring );
+		std::filesystem::path path() const { return _path; };
 
-		void translateExtension( std::string );
-		void setFileExtension( char*, size_t );
-		void setFileExtension( std::wstring );
-		std::wstring fileExtension() const { return _fileExtension; };
+		size_t dataLength() const { return _dataLength; };
 
 		void translateData( std::string );
 		void setData( char*, size_t );
@@ -44,8 +44,8 @@ namespace FileDeen {
 	private:
 		friend class FeD;
 		unsigned int _index, _checksum;
+		std::wstring _path;
 		size_t _dataLength;
-		std::wstring _fileExtension;
 		std::string _data;
 	};
 
@@ -78,7 +78,7 @@ namespace FileDeen {
 		void writeToFile( std::filesystem::path );
 
 	private:
-		const unsigned char _versionByte = 0x03;
+		const unsigned char _versionByte = 0x04;
 		std::string _signature, _dictionary;
 		short _dictionarySize;
 		std::vector<FeD_Entry> _entries;

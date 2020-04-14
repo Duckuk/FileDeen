@@ -9,7 +9,7 @@ using namespace FileDeen;
 
 FeD_Entry::FeD_Entry() {
 	_index = NULL;
-	_fileExtension.resize( extensionSize/2 );
+	_path.resize( pathSize/2 );
 	_dataLength = 0;
 	_checksum = NULL;
 }
@@ -22,21 +22,21 @@ void FeD_Entry::setIndex( unsigned int i ) {
 	_index = i;
 }
 
-void FeD_Entry::translateExtension( std::string dict ) {
-	for ( size_t i = 0; i<_fileExtension.size(); i++ ) {
-		_fileExtension[i] = dict[(unsigned char)_fileExtension[i]];
+void FeD_Entry::translatePath( std::string dict ) {
+	for ( size_t i = 0; i<_path.size(); i++ ) {
+		_path[i] = dict[(unsigned char)_path[i]];
 	}
 }
 
-void FeD_Entry::setFileExtension( char* c, size_t length ) {
-	memcpy( &_fileExtension[0], c, length );
+void FeD_Entry::setPath( char* c, size_t length ) {
+	memcpy( &_path[0], c, length );
 }
 
-void FeD_Entry::setFileExtension( std::wstring s ) {
-	if ( s.size() != extensionSize/2 ) {
-		s.resize( extensionSize/2 );
+void FeD_Entry::setPath( std::wstring s ) {
+	if ( s.size() != pathSize/2 ) {
+		s.resize( pathSize/2 );
 	}
-	_fileExtension = s;
+	_path = s;
 }
 
 void FeD_Entry::translateData( std::string dict ) {
@@ -60,8 +60,8 @@ void FeD_Entry::moveData( std::string& s ) {
 unsigned int FeD_Entry::calculateChecksum() {
 	std::string checksumData;
 	checksumData.append( (const char*)&_index, sizeof( _index ) );
+	checksumData.append( (const char*)&_path[0], _path.size()*sizeof( wchar_t ) );
 	checksumData.append( (const char*)&_dataLength, sizeof( _dataLength ) );
-	checksumData.append( (const char*)&_fileExtension[0], _fileExtension.size()*sizeof( wchar_t ) );
 	unsigned int checksum = CRC::Calculate( &checksumData[0], checksumData.size(), CRC::CRC_32() );
 	checksum = CRC::Calculate( &_data[0], _data.size(), CRC::CRC_32(), checksum );
 	return checksum;
@@ -98,14 +98,14 @@ void FeD::setSignature( char* cSign, size_t length ) {
 
 void FeD::cleanDictionary() {
 	for ( auto& entry : _entries ) {
-		std::string fileExtension;
-		fileExtension.resize( entry._fileExtension.size()*sizeof( wchar_t ) );
-		memcpy( &fileExtension[0], &entry._fileExtension[0], fileExtension.size() );
+		std::string path;
+		path.resize( entry._path.size()*sizeof( wchar_t ) );
+		memcpy( &path[0], &entry._path[0], path.size() );
 		for ( int i = 0; i<sizeof( _omittedBytes ); i++ ) {
 			if ( memchr( &entry._data[0], i, entry._dataLength ) != NULL ) {
 				_omittedBytes[i] = false;
 			}
-			else if ( memchr( &fileExtension[0], i, fileExtension.size() ) != NULL ) {
+			else if ( memchr( &path[0], i, path.size() ) != NULL ) {
 				_omittedBytes[i] = false;
 			}
 		}
@@ -152,7 +152,7 @@ void FeD::delEntry( int index ) {
 
 void FeD::translateEntries( std::string dictionary ) {
 	for ( auto& entry : _entries ) {
-		entry.translateExtension( dictionary );
+		entry.translatePath( dictionary );
 		entry.translateData( dictionary );
 	}
 }
@@ -171,8 +171,8 @@ void FeD::writeToFile( std::filesystem::path fileName ) {
 	}
 	for ( const auto& entry : _entries ) {
 		outputFile.write( (const char*)&entry._index, sizeof( entry._index ) );
+		outputFile.write( (const char*)&entry._path[0], entry._path.size()*2 );
 		outputFile.write( (const char*)&entry._dataLength, sizeof( entry._dataLength ) );
-		outputFile.write( (const char*)&entry._fileExtension[0], entry._fileExtension.size()*2 );
 		outputFile.write( (const char*)&entry._data[0], entry._dataLength );
 		outputFile.write( (const char*)&entry._checksum, sizeof( entry._checksum ) );
 	}
