@@ -374,6 +374,7 @@ int wmain( int argc, wchar_t* argv[] ) {
 	printf( "All done!\n" );
 
 	if ( verboseLogging ) {
+		printf( "Press any key to exit\n" );
 		getchar();
 	}
 	else {

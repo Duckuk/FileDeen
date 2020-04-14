@@ -23,9 +23,12 @@ void FeD_Entry::setIndex( unsigned int i ) {
 }
 
 void FeD_Entry::translatePath( std::string dict ) {
-	for ( size_t i = 0; i<_path.size(); i++ ) {
-		_path[i] = dict[(unsigned char)_path[i]];
+	std::string path( pathSize, 0x00 );
+	memcpy( &path[0], &_path[0], pathSize );
+	for ( size_t i = 0; i<path.size(); i++ ) {
+		path[i] = dict[(unsigned char)path[i]];
 	}
+	memcpy( &_path[0], &path[0], pathSize );
 }
 
 void FeD_Entry::setPath( char* c, size_t length ) {
