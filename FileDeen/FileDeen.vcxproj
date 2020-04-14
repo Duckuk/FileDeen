@@ -147,10 +147,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="config.cpp" />
     <ClCompile Include="filedeen.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="includes\config.h" />
     <ClInclude Include="includes\filedeen.h" />
     <ClInclude Include="includes\CRC.h" />
     <ClInclude Include="resource.h" />

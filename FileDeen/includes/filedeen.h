@@ -73,7 +73,7 @@ namespace FileDeen {
 		void translateEntries( std::string );
 		FeD_Entry& entry( int );
 		std::vector<FeD_Entry> entries() const { return _entries; };
-		int numEntries() const { return _entries.size(); };
+		size_t numEntries() const { return _entries.size(); };
 
 		void writeToFile( std::filesystem::path );
 

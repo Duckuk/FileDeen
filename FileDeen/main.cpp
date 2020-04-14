@@ -10,18 +10,21 @@
 #include <thread>
 #include <windows.h>
 #include "CRC.h"
+#include "config.h"
 #include "filedeen.h"
 using namespace std;
 namespace fs = filesystem;
 
-const bool
-DEBUG_MODE = false;
+FileDeen::Config CONFIG( "FileDeen.ini" );
+
+const bool useRealNames = CONFIG.useRealNames();
+const bool verboseLogging = CONFIG.verboseLogging();
 
 const unsigned char
 SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
 //			 83	   48	 83	   48	 114   127	 13	   84
 
-mt19937_64 rng;
+mt19937_64 RNG;
 
 void EncodeFile( vector<fs::path> filePaths ) {
 
@@ -29,7 +32,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 	uniform_int_distribution<short> dis( 0x61, 0x7A ); //a to z
 	wstring randomLetters( 3, 0x43 );
 	for ( int i = 0; i<3; i++ ) {
-		randomLetters[i] = dis( rng );
+		randomLetters[i] = dis( RNG );
 	}
 
 	wstring outputFileName = to_wstring( unsigned long long( time( nullptr ) ) ) + L"_" + randomLetters + L".fed";
@@ -37,7 +40,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 	FileDeen::FeD fedFile;
 	fedFile.setSignature( (char*)SIGN, 8 );
 
-	if ( !DEBUG_MODE ) printf( "Reading files.." );
+	if ( !verboseLogging ) printf( "Reading files.." );
 
 	//Create FeD entries
 	{
@@ -47,7 +50,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 				for ( const auto& dirEntry : fs::recursive_directory_iterator( filePath ) ) {
 					if ( dirEntry.is_regular_file() ) {
 						fs::path relativePath = fs::relative( dirEntry.path(), filePath.parent_path() );
-						if ( DEBUG_MODE ) wprintf( L"%ls: Creating entry...", relativePath.wstring().c_str() );
+						if ( verboseLogging ) wprintf( L"%ls: Creating entry...", relativePath.wstring().c_str() );
 						FileDeen::FeD_Entry entry;
 
 						entry.setIndex( i );
@@ -64,13 +67,13 @@ void EncodeFile( vector<fs::path> filePaths ) {
 
 						fedFile.moveEntry( entry );
 
-						if ( DEBUG_MODE ) printf( "Done!\n" );
+						if ( verboseLogging ) printf( "Done!\n" );
 						i++;
 					}
 				}
 			}
 			else {
-				if ( DEBUG_MODE ) wprintf( L"%ls: Creating entry...", filePath.filename().wstring().c_str() );
+				if ( verboseLogging ) wprintf( L"%ls: Creating entry...", filePath.filename().wstring().c_str() );
 				FileDeen::FeD_Entry entry;
 
 				entry.setIndex( i );
@@ -87,51 +90,51 @@ void EncodeFile( vector<fs::path> filePaths ) {
 
 				fedFile.moveEntry( entry );
 
-				if ( DEBUG_MODE ) printf( "Done!\n" );
+				if ( verboseLogging ) printf( "Done!\n" );
 				i++;
 			}
 		}
 	}
 
-	if ( !DEBUG_MODE ) printf( "Done!\n" );
+	if ( !verboseLogging ) printf( "Done!\n" );
 
-	if ( !DEBUG_MODE ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
+	if ( !verboseLogging ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
 	//Generate dictionary
-	if ( DEBUG_MODE ) printf( "Generating dictionary..." );
+	if ( verboseLogging ) printf( "Generating dictionary..." );
 	fedFile.generateDictionary();
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Clean dictionary
-	if ( DEBUG_MODE ) printf( "Cleaning dictionary..." );
+	if ( verboseLogging ) printf( "Cleaning dictionary..." );
 	fedFile.cleanDictionary();
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Calculate dictionary size
-	if ( DEBUG_MODE ) printf( "Calculating dictionary size..." );
+	if ( verboseLogging ) printf( "Calculating dictionary size..." );
 	fedFile.calculateDictSize();
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Randomize dictionary
-	if ( DEBUG_MODE ) printf( "Randomizing dictionary..." );
+	if ( verboseLogging ) printf( "Randomizing dictionary..." );
 	fedFile.randomizeDictionary();
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Translate data
-	if ( DEBUG_MODE ) printf( "Translating data..." );
+	if ( verboseLogging ) printf( "Translating data..." );
 	fedFile.translateEntries( fedFile.dictionary() );
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Generate checksums
-	if ( DEBUG_MODE ) printf( "Generating checksums..." );
+	if ( verboseLogging ) printf( "Generating checksums..." );
 	for ( int i = 0; i<fedFile.numEntries(); i++ ) {
 		FileDeen::FeD_Entry& entry = fedFile.entry( i );
 		unsigned int checksum = entry.calculateChecksum();
 		entry.setChecksum( checksum );
 	}
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Write data
-	if ( DEBUG_MODE ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
+	if ( verboseLogging ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
 	fedFile.writeToFile( outputFileName );
 	printf( "Done!\n" );
 
@@ -149,17 +152,17 @@ void DecodeFile( fs::path filePath ) {
 
 	//Check signature
 	buffer.resize( sizeof( SIGN ) );
-	if ( DEBUG_MODE ) printf( "Checking signature..." );
+	if ( verboseLogging ) printf( "Checking signature..." );
 	inputFile.read( &buffer[0], sizeof( SIGN ) );
 	if ( memcmp( &buffer[0], SIGN, sizeof( SIGN ) ) != NULL ) {
 		printf( "Error: File is not a FeD file\n" );
 		return;
 	}
 	fedFile.setSignature( &buffer[0], sizeof( SIGN ) );
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	//Check version
-	if ( DEBUG_MODE ) printf( "Checking version..." );
+	if ( verboseLogging ) printf( "Checking version..." );
 	unsigned char versionByte = inputFile.peek();
 	if ( versionByte != fedFile.version() ) {
 		short nextTwoBytes;
@@ -186,66 +189,66 @@ void DecodeFile( fs::path filePath ) {
 		}
 	}
 	else {
-		if ( DEBUG_MODE ) printf( "Done!: \'v%u\'\n", versionByte );
+		if ( verboseLogging ) printf( "Done!: \'v%u\'\n", versionByte );
 		inputFile.seekg( 1, ios::cur );
 	}
 
 	//Read dictionary size
 	short dictionarySize;
-	if ( DEBUG_MODE ) printf( "Reading dictionary size..." );
+	if ( verboseLogging ) printf( "Reading dictionary size..." );
 	inputFile.read( (char*)&dictionarySize, sizeof( dictionarySize ) );
-	if ( DEBUG_MODE ) printf( "Done!: %hd\n", dictionarySize );
+	if ( verboseLogging ) printf( "Done!: %hd\n", dictionarySize );
 
 	//Read dictionary
 	string dictionary( FileDeen::maxDictSize/2, 0x00 );
 	buffer.resize( 2 );
-	if ( DEBUG_MODE ) printf( "Reading dictionary..." );
+	if ( verboseLogging ) printf( "Reading dictionary..." );
 	for ( short i = 0; i<dictionarySize/2; i++ ) {
 		inputFile.read( &buffer[0], 2 );
 		dictionary[(unsigned char)buffer[0]] = buffer[1];
 	}
 	fedFile.setDictionary( &dictionary[0], dictionary.size() );
-	if ( DEBUG_MODE ) printf( "Done!\n" );
+	if ( verboseLogging ) printf( "Done!\n" );
 
 	while ( true ) {
 		FileDeen::FeD_Entry entry;
 
 		//Read index
 		buffer.resize( sizeof( entry.index() ) );
-		if ( DEBUG_MODE ) printf( "Reading index..." );
+		if ( verboseLogging ) printf( "Reading index..." );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setIndex( &buffer[0], buffer.size() );
-		if ( DEBUG_MODE && entry.index() != 0xFFFFFFFF ) printf( "Done!: %.3u\n", entry.index() );
+		if ( verboseLogging && entry.index() != 0xFFFFFFFF ) printf( "Done!: %.3u\n", entry.index() );
 
 		if ( entry.index() == 0xFFFFFFFF ) {
-			if ( DEBUG_MODE ) printf( "End of file found\n" );
+			if ( verboseLogging ) printf( "End of file found\n" );
 			inputFile.close();
 			break;
 		}
 
 		//Read path
 		buffer.resize( FileDeen::pathSize );
-		if ( DEBUG_MODE ) printf( "%.3u: Reading path...", entry.index() );
+		if ( verboseLogging ) printf( "%.3u: Reading path...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setPath( &buffer[0], buffer.size() );
-		if ( DEBUG_MODE ) printf( "Done!\n" );
+		if ( verboseLogging ) printf( "Done!\n" );
 
 		//Read data length
 		size_t dataLength;
-		if ( DEBUG_MODE ) printf( "%.3u: Reading data length...", entry.index() );
+		if ( verboseLogging ) printf( "%.3u: Reading data length...", entry.index() );
 		inputFile.read( (char*)&dataLength, sizeof( dataLength ) );
-		if ( DEBUG_MODE ) printf( "Done!: %zu\n", dataLength );
+		if ( verboseLogging ) printf( "Done!: %zu\n", dataLength );
 
 		//Read data
 		buffer.resize( dataLength );
-		if ( DEBUG_MODE ) printf( "%.3u: Reading data...", entry.index() );
+		if ( verboseLogging ) printf( "%.3u: Reading data...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.moveData( buffer );
-		if ( DEBUG_MODE ) printf( "Done!\n" );
+		if ( verboseLogging ) printf( "Done!\n" );
 
 		//Check checksum
 		buffer.resize( sizeof( entry.checksum() ) );
-		if ( DEBUG_MODE ) printf( "%.3u: Checking checksum...", entry.index() );
+		if ( verboseLogging ) printf( "%.3u: Checking checksum...", entry.index() );
 		unsigned int checksum = entry.calculateChecksum();
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setChecksum( &buffer[0], buffer.size() );
@@ -253,20 +256,26 @@ void DecodeFile( fs::path filePath ) {
 			printf( "Error: Checksum mismatch, skipping %.3u\n", entry.index() );
 			continue;
 		}
-		if ( DEBUG_MODE ) printf( "Done!\n" );
+		if ( verboseLogging ) printf( "Done!\n" );
 
 		//Translate extension
-		if ( DEBUG_MODE ) printf( "%.3u: Translating path...", entry.index() );
+		if ( verboseLogging ) printf( "%.3u: Translating path...", entry.index() );
 		entry.translatePath( fedFile.dictionary() );
-		if ( DEBUG_MODE ) printf( "Done!: \'%ls\'\n", entry.path().c_str() );
+		if ( verboseLogging ) printf( "Done!: \'%ls\'\n", entry.path().c_str() );
 
 		//Translate data
-		if ( DEBUG_MODE ) printf( "%.3u: Translating data...", entry.index() );
+		if ( verboseLogging ) printf( "%.3u: Translating data...", entry.index() );
 		entry.translateData( fedFile.dictionary() );
-		if ( DEBUG_MODE ) printf( "Done!\n" );
+		if ( verboseLogging ) printf( "Done!\n" );
 
 		//Write data
-		fs::path outputFileName = filePath.stem().wstring() + L"\\" + entry.path().parent_path().wstring() + L"\\" + to_wstring( entry.index() ) + entry.path().extension().wstring();
+		fs::path outputFileName;
+		if ( useRealNames ) {
+			outputFileName = filePath.stem().wstring() + L"\\" + entry.path().wstring();
+		}
+		else {
+			outputFileName = filePath.stem().wstring() + L"\\" + entry.path().parent_path().wstring() + L"\\" + to_wstring( entry.index() ) + entry.path().extension().wstring();
+		}
 		fs::create_directories( outputFileName.parent_path() );
 		wprintf( L"%.3u: Writing to \'%ls\'...", entry.index(), outputFileName.c_str() );
 		entry.writeToFile( outputFileName );
@@ -279,7 +288,7 @@ int wmain( int argc, wchar_t* argv[] ) {
 
 	SetConsoleTitleW( L"FileDeen | Encoding Scheme: v4" );
 
-	rng.seed( (unsigned)time( NULL ) );
+	RNG.seed( (unsigned)time( NULL ) );
 
 	vector<fs::path> filePaths;
 	if ( argc < 2 ) {
@@ -364,7 +373,7 @@ int wmain( int argc, wchar_t* argv[] ) {
 	}
 	printf( "All done!\n" );
 
-	if ( DEBUG_MODE ) {
+	if ( verboseLogging ) {
 		getchar();
 	}
 	else {
