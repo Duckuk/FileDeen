@@ -377,7 +377,7 @@ int wmain( int argc, wchar_t* argv[] ) {
 		getchar();
 	}
 	else {
-		this_thread::sleep_for( 3s );
+		this_thread::sleep_for( 1.5s );
 	}
 	return 0;
 }
