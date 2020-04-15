@@ -6,6 +6,7 @@ using namespace FileDeen;
 
 Config::Config( std::wstring fileName ) {
 	_boolMap = {
+		{"bOnlyIncludeFolderContents",false},
 		{"bUseRealNames",false},
 		{"bVerboseLogging",false}
 	};

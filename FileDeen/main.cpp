@@ -17,8 +17,9 @@ namespace fs = filesystem;
 
 FileDeen::Config CONFIG( L"FileDeen.ini" );
 
-const bool useRealNames = CONFIG.getKey("bUseRealNames");
-const bool verboseLogging = CONFIG.getKey("bVerboseLogging");
+const bool onlyIncludeFolderContents = CONFIG.getKey( "bOnlyIncludeFolderContents" );
+const bool useRealNames = CONFIG.getKey( "bUseRealNames" );
+const bool verboseLogging = CONFIG.getKey( "bVerboseLogging" );
 
 const unsigned char
 SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
@@ -49,7 +50,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 			if ( fs::is_directory( filePath ) ) {
 				for ( const auto& dirEntry : fs::recursive_directory_iterator( filePath ) ) {
 					if ( dirEntry.is_regular_file() ) {
-						fs::path relativePath = fs::relative( dirEntry.path(), filePath.parent_path() );
+						fs::path relativePath = fs::relative( dirEntry.path(), onlyIncludeFolderContents ? filePath : filePath.parent_path() );
 						if ( verboseLogging ) wprintf( L"%ls: Creating entry...", relativePath.wstring().c_str() );
 						FileDeen::FeD_Entry entry;
 
