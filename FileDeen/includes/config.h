@@ -4,7 +4,7 @@
 namespace FileDeen {
 	class Config {
 	public:
-		Config( std::filesystem::path );
+		Config( std::wstring );
 
 		bool getKey( std::string );
 

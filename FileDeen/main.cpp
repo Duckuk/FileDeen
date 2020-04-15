@@ -15,7 +15,7 @@
 using namespace std;
 namespace fs = filesystem;
 
-FileDeen::Config CONFIG( "FileDeen.ini" );
+FileDeen::Config CONFIG( L"FileDeen.ini" );
 
 const bool useRealNames = CONFIG.getKey("bUseRealNames");
 const bool verboseLogging = CONFIG.getKey("bVerboseLogging");

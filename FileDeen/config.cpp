@@ -4,15 +4,14 @@
 #include "config.h"
 using namespace FileDeen;
 
-const std::string sUseRealNames = "bUseRealNames";
-const std::string sVerboseLogging = "bVerboseLogging";
-
-Config::Config( std::filesystem::path path ) {
+Config::Config( std::wstring fileName ) {
 	_boolMap = {
 		{"bUseRealNames",false},
 		{"bVerboseLogging",false}
 	};
-	_filePath = path;
+	wchar_t* buffer;
+	_get_wpgmptr( &buffer );
+	_filePath = std::filesystem::path( buffer ).parent_path().wstring() + L"\\" + fileName;
 	if ( !std::filesystem::exists( _filePath ) ) {
 		this->write();
 	}
