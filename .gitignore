@@ -5,6 +5,7 @@
 
 #FileDeen-specific files
 *.fed
+FileDeen.ini
 
 # User-specific files
 *.rsuser
