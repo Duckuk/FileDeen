@@ -1,17 +1,17 @@
 #pragma once
+#include <map>
 
 namespace FileDeen {
 	class Config {
 	public:
 		Config( std::filesystem::path );
 
-		void read();
+		bool getKey( std::string );
 
-		bool useRealNames() const { return _bUseRealNames; };
-		bool verboseLogging() const { return _bVerboseLogging; };
+		void read();
 	private:
 		void write();
-		bool _bUseRealNames, _bVerboseLogging;
+		std::map<std::string,bool> _boolMap;
 		std::filesystem::path _filePath;
 	};
 }

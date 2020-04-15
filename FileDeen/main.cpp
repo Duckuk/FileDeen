@@ -17,8 +17,8 @@ namespace fs = filesystem;
 
 FileDeen::Config CONFIG( "FileDeen.ini" );
 
-const bool useRealNames = CONFIG.useRealNames();
-const bool verboseLogging = CONFIG.verboseLogging();
+const bool useRealNames = CONFIG.getKey("bUseRealNames");
+const bool verboseLogging = CONFIG.getKey("bVerboseLogging");
 
 const unsigned char
 SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };

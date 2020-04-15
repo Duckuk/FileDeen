@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <string>
 #include "config.h"
 using namespace FileDeen;
 
@@ -7,8 +8,10 @@ const std::string sUseRealNames = "bUseRealNames";
 const std::string sVerboseLogging = "bVerboseLogging";
 
 Config::Config( std::filesystem::path path ) {
-	_bUseRealNames = false;
-	_bVerboseLogging = false;
+	_boolMap = {
+		{"bUseRealNames",false},
+		{"bVerboseLogging",false}
+	};
 	_filePath = path;
 	if ( !std::filesystem::exists( _filePath ) ) {
 		this->write();
@@ -16,35 +19,34 @@ Config::Config( std::filesystem::path path ) {
 	this->read();
 }
 
+bool Config::getKey( std::string key ) {
+	if ( _boolMap.find( key ) != _boolMap.end() ) {
+		return _boolMap[key];
+	}
+	else {
+		return NULL;
+	}
+}
+
 void Config::read() {
-	char cBuffer;
 	std::string buffer( 256, 0x00 );
 	std::fstream configFile( _filePath, std::ios::in );
 	while ( configFile ) {
 		configFile.getline( &buffer[0], buffer.size(), '=' );
+		std::string subBuffer = buffer.substr( 0, buffer.find_first_of( '\x0' ) );
 
-		if ( !memcmp( &buffer[0], &sUseRealNames[0], sUseRealNames.size() ) ) {
-			cBuffer = configFile.get();
-			if ( cBuffer == '0' ) {
-				_bUseRealNames = false;
-			}
-			else if ( cBuffer == '1' ) {
-				_bUseRealNames = true;
-			}
-			else {
-				printf( "Invalid value for %s: %c\n", buffer.c_str(), cBuffer );
-			}
-		}
-		else if ( !memcmp( &buffer[0], &sVerboseLogging[0], sVerboseLogging.size() ) ) {
-			cBuffer = configFile.get();
-			if ( cBuffer == '0' ) {
-				_bVerboseLogging = false;
-			}
-			else if ( cBuffer == '1' ) {
-				_bVerboseLogging = true;
-			}
-			else {
-				printf( "Invalid value for %s: %c\n", buffer.c_str(), cBuffer );
+		if ( _boolMap.find( subBuffer ) != _boolMap.end() ) {
+			char cBuffer = configFile.get();
+			switch ( cBuffer ) {
+				case '0':
+					_boolMap[subBuffer] = false;
+					break;
+				case '1':
+					_boolMap[subBuffer] = true;
+					break;
+				default:
+					printf( "Invalid value for %s: \'%c\'\n", buffer.c_str(), cBuffer );
+					break;
 			}
 		}
 		else {
@@ -59,12 +61,9 @@ void Config::read() {
 
 void Config::write() {
 	std::fstream configFile( _filePath, std::ios::out | std::ios::trunc );
-
-	configFile.write( sUseRealNames.c_str(), sUseRealNames.size() );
-	configFile.write( "=0\n", 3 );
-
-	configFile.write( sVerboseLogging.c_str(), sVerboseLogging.size() );
-	configFile.write( "=0\n", 3 );
-
+	for ( const auto& pair : _boolMap ) {
+		std::string line = pair.first + '=' + std::to_string( pair.second ) + '\n';
+		configFile.write( line.c_str(), line.size() );
+	}
 	configFile.close();
 }
