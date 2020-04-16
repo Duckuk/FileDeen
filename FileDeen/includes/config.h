@@ -11,7 +11,7 @@ namespace FileDeen {
 		void read();
 	private:
 		void write();
-		std::map<std::string, bool> _boolMap;
+		std::map<std::string, bool> _boolOptions;
 		std::filesystem::path _filePath;
 	};
 }

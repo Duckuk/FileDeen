@@ -5,7 +5,7 @@
 using namespace FileDeen;
 
 Config::Config( std::wstring fileName ) {
-	_boolMap = {
+	_boolOptions = {
 		{"bOnlyIncludeFolderContents",false},
 		{"bUseRealNames",false},
 		{"bVerboseLogging",false}
@@ -20,8 +20,8 @@ Config::Config( std::wstring fileName ) {
 }
 
 bool Config::getKey( std::string key ) {
-	if ( _boolMap.find( key ) != _boolMap.end() ) {
-		return _boolMap[key];
+	if ( _boolOptions.find( key ) != _boolOptions.end() ) {
+		return _boolOptions[key];
 	}
 	else {
 		return NULL;
@@ -35,14 +35,14 @@ void Config::read() {
 		configFile.getline( &buffer[0], buffer.size(), '=' );
 		std::string subBuffer = buffer.substr( 0, buffer.find_first_of( '\x0' ) );
 
-		if ( _boolMap.find( subBuffer ) != _boolMap.end() ) {
+		if ( _boolOptions.find( subBuffer ) != _boolOptions.end() ) {
 			char cBuffer = configFile.get();
 			switch ( cBuffer ) {
 				case '0':
-					_boolMap[subBuffer] = false;
+					_boolOptions[subBuffer] = false;
 					break;
 				case '1':
-					_boolMap[subBuffer] = true;
+					_boolOptions[subBuffer] = true;
 					break;
 				default:
 					printf( "Invalid value for %s: \'%c\'\n", buffer.c_str(), cBuffer );
@@ -61,7 +61,7 @@ void Config::read() {
 
 void Config::write() {
 	std::fstream configFile( _filePath, std::ios::out | std::ios::trunc );
-	for ( const auto& pair : _boolMap ) {
+	for ( const auto& pair : _boolOptions ) {
 		std::string line = pair.first + '=' + std::to_string( pair.second ) + '\n';
 		configFile.write( line.c_str(), line.size() );
 	}
