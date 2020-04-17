@@ -5,7 +5,12 @@
 using namespace FileDeen;
 
 Config::Config( std::wstring fileName ) {
+	_stringOptions = {
+		{"sPassword",""}
+	};
 	_boolOptions = {
+		{"bPasswordEnabled",false},
+		{"bPasswordUncensored",false},
 		{"bOnlyIncludeFolderContents",false},
 		{"bUseRealNames",false},
 		{"bVerboseLogging",false}
@@ -19,7 +24,16 @@ Config::Config( std::wstring fileName ) {
 	this->read();
 }
 
-bool Config::getKey( std::string key ) {
+std::string Config::getString( std::string key ) {
+	if ( _stringOptions.find( key ) != _stringOptions.end() ) {
+		return _stringOptions[key];
+	}
+	else {
+		return NULL;
+	}
+}
+
+bool Config::getBool( std::string key ) {
 	if ( _boolOptions.find( key ) != _boolOptions.end() ) {
 		return _boolOptions[key];
 	}
@@ -33,9 +47,14 @@ void Config::read() {
 	std::fstream configFile( _filePath, std::ios::in );
 	while ( configFile ) {
 		configFile.getline( &buffer[0], buffer.size(), '=' );
-		std::string subBuffer = buffer.substr( 0, buffer.find_first_of( '\x0' ) );
+		std::string subBuffer = buffer.c_str();
 
-		if ( _boolOptions.find( subBuffer ) != _boolOptions.end() ) {
+		if ( _stringOptions.find( subBuffer ) != _stringOptions.end() ) {
+			configFile.ignore( std::numeric_limits<std::streamsize>::max(), '"' );
+			configFile.getline( &buffer[0], buffer.size(), '"' );
+			_stringOptions[subBuffer] = buffer.c_str();
+		}
+		else if ( _boolOptions.find( subBuffer ) != _boolOptions.end() ) {
 			char cBuffer = configFile.get();
 			switch ( cBuffer ) {
 				case '0':
@@ -61,6 +80,10 @@ void Config::read() {
 
 void Config::write() {
 	std::fstream configFile( _filePath, std::ios::out | std::ios::trunc );
+	for ( const auto& pair : _stringOptions ) {
+		std::string line = pair.first + "=\"" + pair.second + "\"\n";
+		configFile.write( line.c_str(), line.size() );
+	}
 	for ( const auto& pair : _boolOptions ) {
 		std::string line = pair.first + '=' + std::to_string( pair.second ) + '\n';
 		configFile.write( line.c_str(), line.size() );

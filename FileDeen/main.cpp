@@ -17,9 +17,12 @@ namespace fs = filesystem;
 
 FileDeen::Config CONFIG( L"FileDeen.ini" );
 
-const bool onlyIncludeFolderContents = CONFIG.getKey( "bOnlyIncludeFolderContents" );
-const bool useRealNames = CONFIG.getKey( "bUseRealNames" );
-const bool verboseLogging = CONFIG.getKey( "bVerboseLogging" );
+const string password = CONFIG.getString( "sPassword" );
+const bool passwordEnabled = CONFIG.getBool( "bPasswordEnabled" );
+const bool passwordUncensored = CONFIG.getBool( "bPasswordUncensored" );
+const bool onlyIncludeFolderContents = CONFIG.getBool( "bOnlyIncludeFolderContents" );
+const bool useRealNames = CONFIG.getBool( "bUseRealNames" );
+const bool verboseLogging = CONFIG.getBool( "bVerboseLogging" );
 
 const unsigned char
 SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
@@ -129,7 +132,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 	if ( verboseLogging ) printf( "Generating checksums..." );
 	for ( int i = 0; i<fedFile.numEntries(); i++ ) {
 		FileDeen::FeD_Entry& entry = fedFile.entry( i );
-		unsigned int checksum = entry.calculateChecksum();
+		unsigned int checksum = entry.calculateChecksum( passwordEnabled ? password : "" );
 		entry.setChecksum( checksum );
 	}
 	if ( verboseLogging ) printf( "Done!\n" );
@@ -250,11 +253,11 @@ void DecodeFile( fs::path filePath ) {
 		//Check checksum
 		buffer.resize( sizeof( entry.checksum() ) );
 		if ( verboseLogging ) printf( "%.3u: Checking checksum...", entry.index() );
-		unsigned int checksum = entry.calculateChecksum();
+		unsigned int checksum = entry.calculateChecksum( passwordEnabled ? password : "" );
 		inputFile.read( &buffer[0], buffer.size() );
 		entry.setChecksum( &buffer[0], buffer.size() );
 		if ( entry.checksum() != checksum ) {
-			printf( "Error: Checksum mismatch, skipping %.3u\n", entry.index() );
+			printf( "Error: Checksum/password mismatch, skipping %.3u\n", entry.index() );
 			continue;
 		}
 		if ( verboseLogging ) printf( "Done!\n" );
@@ -355,6 +358,20 @@ int wmain( int argc, wchar_t* argv[] ) {
 
 	if ( extensionWarning ) {
 		cout << "WARNING: One or more file extensions are longer than three characters, which encoding does not support. Encode at your own risk." << endl;
+	}
+
+	if ( passwordEnabled && password.length() > 0 ) {
+		if ( passwordUncensored ) {
+			printf( "Password: \"%s\"\n", password.c_str() );
+		}
+		else {
+			if ( password.length() < 3 ) {
+				printf( "Password: \"%s\"\n", string( password.size(), '*' ).c_str() );
+			}
+			else {
+				printf( "Password: \"%c%s%c\"\n", password[0], string( password.size()-2, '*' ).c_str(), password.back() );
+			}
+		}
 	}
 
 	printf( "Pick Mode:\n"

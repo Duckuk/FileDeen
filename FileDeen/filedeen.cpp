@@ -60,8 +60,11 @@ void FeD_Entry::moveData( std::string& s ) {
 	_dataLength = _data.size();
 }
 
-unsigned int FeD_Entry::calculateChecksum() {
+unsigned int FeD_Entry::calculateChecksum( std::string password = "" ) {
 	std::string checksumData;
+	if ( password.length() > 0 ) {
+		checksumData.append( (const char*)&password[0], password.size() );
+	}
 	checksumData.append( (const char*)&_index, sizeof( _index ) );
 	checksumData.append( (const char*)&_path[0], _path.size()*sizeof( wchar_t ) );
 	checksumData.append( (const char*)&_dataLength, sizeof( _dataLength ) );

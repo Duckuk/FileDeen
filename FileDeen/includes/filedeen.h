@@ -34,7 +34,7 @@ namespace FileDeen {
 		void moveData( std::string& );
 		std::string data() const { return _data; };
 
-		unsigned int calculateChecksum();
+		unsigned int calculateChecksum( std::string );
 		void setChecksum( char*, size_t );
 		void setChecksum( unsigned int );
 		unsigned int checksum() const { return _checksum; };

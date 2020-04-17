@@ -6,12 +6,14 @@ namespace FileDeen {
 	public:
 		Config( std::wstring );
 
-		bool getKey( std::string );
+		std::string getString( std::string );
+		bool getBool( std::string );
 
 		void read();
 	private:
 		void write();
 		std::map<std::string, bool> _boolOptions;
+		std::map<std::string, std::string> _stringOptions;
 		std::filesystem::path _filePath;
 	};
 }
