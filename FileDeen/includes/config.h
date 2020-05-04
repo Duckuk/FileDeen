@@ -1,5 +1,7 @@
 #pragma once
+#include <filesystem>
 #include <map>
+#include <string>
 
 namespace FileDeen {
 	class Config {
