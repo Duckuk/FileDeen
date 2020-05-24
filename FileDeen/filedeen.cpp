@@ -161,14 +161,22 @@ void FeD::translateEntries( std::string dictionary ) {
 
 void FeD::writeToFile( std::filesystem::path fileName ) {
 	std::fstream outputFile( fileName, std::ios::out | std::ios::binary | std::ios::trunc );
+	
+	std::vector<int> dictionaryWriteOrder;
+	for ( int i = 0; i<_dictionary.size(); i++ ) {
+		dictionaryWriteOrder.push_back( i );
+	}
+	std::mt19937_64 rng;
+	rng.seed( (unsigned)time( NULL ) );
+	std::shuffle( dictionaryWriteOrder.begin(), dictionaryWriteOrder.end(), rng );
 
 	outputFile.write( &_signature[0], _signature.size() );
 	outputFile.put( _versionByte );
 	outputFile.write( (const char*)&_dictionarySize, sizeof( _dictionarySize ) );
-	for ( int i = 0; i<_dictionary.size(); i++ ) {
-		if ( !_omittedBytes[i] ) {
-			outputFile.put( _dictionary[i] );
-			outputFile.put( i );
+	for ( const auto& e : dictionaryWriteOrder ) {
+		if ( !_omittedBytes[e] ) {
+			outputFile.put( _dictionary[e] );
+			outputFile.put( e );
 		}
 	}
 	for ( const auto& entry : _entries ) {
