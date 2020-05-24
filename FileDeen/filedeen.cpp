@@ -148,10 +148,12 @@ void FeD::moveEntry( FeD_Entry& e ) {
 	_entries.push_back( std::move( e ) );
 }
 
+//Delete entry at index
 void FeD::delEntry( int index ) {
 	_entries.erase( _entries.begin()+index );
 }
 
+//Iterate through entry vector and call translation functions
 void FeD::translateEntries( std::string dictionary ) {
 	for ( auto& entry : _entries ) {
 		entry.translatePath( dictionary );
@@ -159,9 +161,11 @@ void FeD::translateEntries( std::string dictionary ) {
 	}
 }
 
+//Write FeD class to file
 void FeD::writeToFile( std::filesystem::path fileName ) {
 	std::fstream outputFile( fileName, std::ios::out | std::ios::binary | std::ios::trunc );
 	
+	//Generate the order in which the dictionary gets written
 	std::vector<int> dictionaryWriteOrder;
 	for ( int i = 0; i<_dictionary.size(); i++ ) {
 		dictionaryWriteOrder.push_back( i );
@@ -169,17 +173,17 @@ void FeD::writeToFile( std::filesystem::path fileName ) {
 	std::mt19937_64 rng;
 	rng.seed( (unsigned)time( NULL ) );
 	std::shuffle( dictionaryWriteOrder.begin(), dictionaryWriteOrder.end(), rng );
-
-	outputFile.write( &_signature[0], _signature.size() );
-	outputFile.put( _versionByte );
-	outputFile.write( (const char*)&_dictionarySize, sizeof( _dictionarySize ) );
+	
+	outputFile.write( &_signature[0], _signature.size() );  //Write signature
+	outputFile.put( _versionByte );  //Put version byte
+	outputFile.write( (const char*)&_dictionarySize, sizeof( _dictionarySize ) );  //Write dictionary size
 	for ( const auto& e : dictionaryWriteOrder ) {
-		if ( !_omittedBytes[e] ) {
-			outputFile.put( _dictionary[e] );
-			outputFile.put( e );
+		if ( !_omittedBytes[e] ) {  //Check if dictionary entry is needed
+			outputFile.put( _dictionary[e] );  //Write 'to' byte
+			outputFile.put( e );  //Write 'from' byte
 		}
 	}
-	for ( const auto& entry : _entries ) {
+	for ( const auto& entry : _entries ) {  //Iterate through entry vector and write each in sequence
 		outputFile.write( (const char*)&entry._index, sizeof( entry._index ) );
 		outputFile.write( (const char*)&entry._path[0], entry._path.size()*2 );
 		outputFile.write( (const char*)&entry._dataLength, sizeof( entry._dataLength ) );
@@ -188,6 +192,6 @@ void FeD::writeToFile( std::filesystem::path fileName ) {
 	}
 	char endOfFile[4];
 	memset( endOfFile, 0xFF, sizeof( endOfFile ) );
-	outputFile.write( endOfFile, sizeof( endOfFile ) );
+	outputFile.write( endOfFile, sizeof( endOfFile ) );  //Write end of data byte sequence
 	outputFile.close();
 }
