@@ -107,10 +107,7 @@ void FeD::cleanDictionary() {
 		path.resize( entry._path.size()*sizeof( wchar_t ) );
 		memcpy( &path[0], &entry._path[0], path.size() );
 		for ( int i = 0; i<sizeof( _omittedBytes ); i++ ) {
-			if ( memchr( &entry._data[0], i, entry._dataLength ) != NULL ) {
-				_omittedBytes[i] = false;
-			}
-			else if ( memchr( &path[0], i, path.size() ) != NULL ) {
+			if ( memchr( &entry._data[0], i, entry._dataLength ) != NULL || memchr( &path[0], i, path.size() ) != NULL ) {
 				_omittedBytes[i] = false;
 			}
 		}
