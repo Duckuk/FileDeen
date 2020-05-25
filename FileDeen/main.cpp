@@ -343,7 +343,7 @@ int wmain( int argc, wchar_t* argv[] ) {
 	}
 
 	double approximateSizeConverted = (double)approximateSize;
-	int sizeUsed;
+	int sizeUsed = 0;
 	string sizes[4] = { " bytes", "KB", "MB", "GB" };
 	for ( double i = 0; i<4; i++ ) {
 		double kbSize = pow( 1024., i+1 );
