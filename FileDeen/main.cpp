@@ -278,7 +278,6 @@ int wmain( int argc, wchar_t* argv[] ) {
 		}
 	}
 	
-	bool extensionWarning = false;
 	size_t approximateSize = FileDeen::maxMetadataSize;
 	for ( auto it = filePaths.begin(); it!=filePaths.end(); ) {
 		fs::path path = *it;
@@ -298,11 +297,6 @@ int wmain( int argc, wchar_t* argv[] ) {
 			approximateSize += fs::file_size( path ) + FileDeen::entryMetadataSize;
 			it++;
 		}
-		if ( !extensionWarning ) {
-			if ( path.extension().wstring().length() > 4 ) {
-				extensionWarning = true;
-			}
-		}
 	}
 
 	double approximateSizeConverted = (double)approximateSize;
@@ -317,10 +311,6 @@ int wmain( int argc, wchar_t* argv[] ) {
 			sizeUsed = i;
 			break;
 		}
-	}
-
-	if ( extensionWarning ) {
-		cout << "WARNING: One or more file extensions are longer than three characters, which encoding does not support. Encode at your own risk." << endl;
 	}
 
 	if ( keyEnabled && key.length() > 0 ) {
