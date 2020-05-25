@@ -4,11 +4,11 @@ using namespace FileDeen;
 
 Config::Config( std::wstring fileName ) {
 	_stringOptions = {
-		{"sPassword",""}
+		{"sKey",""}
 	};
 	_boolOptions = {
-		{"bPasswordEnabled",false},
-		{"bPasswordUncensored",false},
+		{"bKeyEnabled",false},
+		{"bKeyUncensored",false},
 		{"bOnlyIncludeFolderContents",false},
 		{"bUseRealNames",false},
 		{"bVerboseLogging",false}

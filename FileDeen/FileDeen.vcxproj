@@ -154,7 +154,6 @@
   <ItemGroup>
     <ClInclude Include="includes\config.h" />
     <ClInclude Include="includes\filedeen.h" />
-    <ClInclude Include="includes\CRC.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

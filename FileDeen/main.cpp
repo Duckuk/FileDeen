@@ -1,5 +1,3 @@
-#define CRCPP_USE_CPP11
-
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -9,7 +7,6 @@
 #include <string>
 #include <thread>
 #include <windows.h>
-#include "CRC.h"
 #include "config.h"
 #include "filedeen.h"
 using namespace std;
@@ -17,9 +14,9 @@ namespace fs = filesystem;
 
 FileDeen::Config CONFIG( L"FileDeen.ini" );
 
-const string password = CONFIG.getString( "sPassword" );
-const bool passwordEnabled = CONFIG.getBool( "bPasswordEnabled" );
-const bool passwordUncensored = CONFIG.getBool( "bPasswordUncensored" );
+const string key = CONFIG.getString( "sKey" );
+const bool keyEnabled = CONFIG.getBool( "bKeyEnabled" );
+const bool keyUncensored = CONFIG.getBool( "bKeyUncensored" );
 const bool onlyIncludeFolderContents = CONFIG.getBool( "bOnlyIncludeFolderContents" );
 const bool useRealNames = CONFIG.getBool( "bUseRealNames" );
 const bool verboseLogging = CONFIG.getBool( "bVerboseLogging" );
@@ -55,10 +52,14 @@ void EncodeFile( vector<fs::path> filePaths ) {
 					if ( dirEntry.is_regular_file() ) {
 						fs::path relativePath = fs::relative( dirEntry.path(), onlyIncludeFolderContents ? filePath : filePath.parent_path() );
 						if ( verboseLogging ) wprintf( L"%ls: Creating entry...", relativePath.wstring().c_str() );
-						FileDeen::FeD_Entry entry;
-
+						FileDeen::FeD_Entry entry( { (unsigned)time( NULL ) } );
+						
 						entry.setIndex( i );
-						entry.setPath( relativePath );
+						
+						string sRelativePath( relativePath.wstring().length()*2, 0x00 );
+						memcpy( &sRelativePath[0], &relativePath.wstring()[0], relativePath.wstring().length()*2 );
+						entry.setPathPadLength( FileDeen::CBCEncrypt( sRelativePath, keyEnabled ? key : "", entry.initVector() ) );
+						entry.setPath( &sRelativePath[0], sRelativePath.length() );
 
 						fstream inputFile( dirEntry.path(), ios::in | ios::binary | ios::ate );
 						size_t length = inputFile.tellg();
@@ -67,6 +68,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 						std::string dataBuffer( length, 0x00 );
 						inputFile.read( &dataBuffer[0], length );
 						inputFile.close();
+						entry.setDataPadLength( FileDeen::CBCEncrypt( dataBuffer, keyEnabled ? key : "", entry.initVector() ) );
 						entry.moveData( dataBuffer );
 
 						fedFile.moveEntry( entry );
@@ -78,10 +80,15 @@ void EncodeFile( vector<fs::path> filePaths ) {
 			}
 			else {
 				if ( verboseLogging ) wprintf( L"%ls: Creating entry...", filePath.filename().wstring().c_str() );
-				FileDeen::FeD_Entry entry;
+				FileDeen::FeD_Entry entry( { (unsigned)time( NULL ) } );
 
 				entry.setIndex( i );
-				entry.setPath( fs::relative( filePath, filePath.parent_path() ) );
+
+				fs::path relativePath = fs::relative( filePath, filePath.parent_path() ).string();
+				string sRelativePath( relativePath.wstring().length()*2, 0x00 );
+				memcpy( &sRelativePath[0], &relativePath.wstring()[0], relativePath.wstring().length()*2 );
+				entry.setPathPadLength( FileDeen::CBCEncrypt( sRelativePath, keyEnabled ? key : "", entry.initVector() ) );
+				entry.setPath( &sRelativePath[0], sRelativePath.length() );
 
 				fstream inputFile( filePath, ios::in | ios::binary | ios::ate );
 				size_t length = inputFile.tellg();
@@ -90,6 +97,7 @@ void EncodeFile( vector<fs::path> filePaths ) {
 				std::string dataBuffer( length, 0x00 );
 				inputFile.read( &dataBuffer[0], length );
 				inputFile.close();
+				entry.setDataPadLength( FileDeen::CBCEncrypt( dataBuffer, keyEnabled ? key : "", entry.initVector() ) );
 				entry.moveData( dataBuffer );
 
 				fedFile.moveEntry( entry );
@@ -102,43 +110,8 @@ void EncodeFile( vector<fs::path> filePaths ) {
 
 	if ( !verboseLogging ) printf( "Done!\n" );
 
-	if ( !verboseLogging ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
-	//Generate dictionary
-	if ( verboseLogging ) printf( "Generating dictionary..." );
-	fedFile.generateDictionary();
-	if ( verboseLogging ) printf( "Done!\n" );
-
-	//Clean dictionary
-	if ( verboseLogging ) printf( "Cleaning dictionary..." );
-	fedFile.cleanDictionary();
-	if ( verboseLogging ) printf( "Done!\n" );
-
-	//Calculate dictionary size
-	if ( verboseLogging ) printf( "Calculating dictionary size..." );
-	fedFile.calculateDictSize();
-	if ( verboseLogging ) printf( "Done!\n" );
-
-	//Randomize dictionary
-	if ( verboseLogging ) printf( "Randomizing dictionary..." );
-	fedFile.randomizeDictionary();
-	if ( verboseLogging ) printf( "Done!\n" );
-
-	//Translate data
-	if ( verboseLogging ) printf( "Translating data..." );
-	fedFile.translateEntries( fedFile.dictionary() );
-	if ( verboseLogging ) printf( "Done!\n" );
-
-	//Generate checksums
-	if ( verboseLogging ) printf( "Generating checksums..." );
-	for ( int i = 0; i<fedFile.numEntries(); i++ ) {
-		FileDeen::FeD_Entry& entry = fedFile.entry( i );
-		unsigned int checksum = entry.calculateChecksum( passwordEnabled ? password : "" );
-		entry.setChecksum( checksum );
-	}
-	if ( verboseLogging ) printf( "Done!\n" );
-
 	//Write data
-	if ( verboseLogging ) wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
+	wprintf( L"Writing to \'%ls\'...", outputFileName.c_str() );
 	fedFile.writeToFile( outputFileName );
 	printf( "Done!\n" );
 
@@ -197,25 +170,8 @@ void DecodeFile( fs::path filePath ) {
 		inputFile.seekg( 1, ios::cur );
 	}
 
-	//Read dictionary size
-	short dictionarySize;
-	if ( verboseLogging ) printf( "Reading dictionary size..." );
-	inputFile.read( (char*)&dictionarySize, sizeof( dictionarySize ) );
-	if ( verboseLogging ) printf( "Done!: %hd\n", dictionarySize );
-
-	//Read dictionary
-	string dictionary( FileDeen::maxDictSize/2, 0x00 );
-	buffer.resize( 2 );
-	if ( verboseLogging ) printf( "Reading dictionary..." );
-	for ( short i = 0; i<dictionarySize/2; i++ ) {
-		inputFile.read( &buffer[0], 2 );
-		dictionary[(unsigned char)buffer[0]] = buffer[1];
-	}
-	fedFile.setDictionary( &dictionary[0], dictionary.size() );
-	if ( verboseLogging ) printf( "Done!\n" );
-
 	while ( true ) {
-		FileDeen::FeD_Entry entry;
+		FileDeen::FeD_Entry entry( { (unsigned)time( NULL ) } );
 
 		//Read index
 		buffer.resize( sizeof( entry.index() ) );
@@ -230,10 +186,31 @@ void DecodeFile( fs::path filePath ) {
 			break;
 		}
 
+		//Read initialization vector
+		std::vector<char> initVector( FileDeen::blockSize );
+		if ( verboseLogging ) printf( "Reading initialization vector..." );
+		inputFile.read( &initVector[0], initVector.size() );
+		entry.setInitVector( initVector );
+		if ( verboseLogging ) printf( "Done!\n" );
+
+		//Read path size
+		unsigned short pathLength;
+		if ( verboseLogging ) printf( "%.3u: Reading path length...", entry.index() );
+		inputFile.read( (char*)&pathLength, sizeof( pathLength ) );
+		if ( verboseLogging ) printf( "Done!: %hu\n", pathLength );
+
+		//Read path padding size
+		unsigned short pathPadLength;
+		if ( verboseLogging ) printf( "%.3u: Reading path padding length...", entry.index() );
+		inputFile.read( (char*)&pathPadLength, sizeof( pathPadLength ) );
+		if ( verboseLogging ) printf( "Done!: %hu\n", pathPadLength );
+
 		//Read path
-		buffer.resize( FileDeen::pathSize );
+		buffer.resize( pathLength );
 		if ( verboseLogging ) printf( "%.3u: Reading path...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
+		FileDeen::CBCDecrypt( buffer, key, entry.initVector() );
+		buffer.resize( buffer.size()-pathPadLength );
 		entry.setPath( &buffer[0], buffer.size() );
 		if ( verboseLogging ) printf( "Done!\n" );
 
@@ -243,33 +220,19 @@ void DecodeFile( fs::path filePath ) {
 		inputFile.read( (char*)&dataLength, sizeof( dataLength ) );
 		if ( verboseLogging ) printf( "Done!: %zu\n", dataLength );
 
+		//Read data padding size
+		unsigned short dataPadLength;
+		if ( verboseLogging ) printf( "%.3u: Reading data padding length...", entry.index() );
+		inputFile.read( (char*)&dataPadLength, sizeof( dataPadLength ) );
+		if ( verboseLogging ) printf( "Done!: %hu\n", dataPadLength );
+
 		//Read data
 		buffer.resize( dataLength );
 		if ( verboseLogging ) printf( "%.3u: Reading data...", entry.index() );
 		inputFile.read( &buffer[0], buffer.size() );
+		FileDeen::CBCDecrypt( buffer, key, entry.initVector() );
+		buffer.resize( buffer.size()-dataPadLength );
 		entry.moveData( buffer );
-		if ( verboseLogging ) printf( "Done!\n" );
-
-		//Check checksum
-		buffer.resize( sizeof( entry.checksum() ) );
-		if ( verboseLogging ) printf( "%.3u: Checking checksum...", entry.index() );
-		unsigned int checksum = entry.calculateChecksum( passwordEnabled ? password : "" );
-		inputFile.read( &buffer[0], buffer.size() );
-		entry.setChecksum( &buffer[0], buffer.size() );
-		if ( entry.checksum() != checksum ) {
-			printf( "Error: Checksum/password mismatch, skipping %.3u\n", entry.index() );
-			continue;
-		}
-		if ( verboseLogging ) printf( "Done!\n" );
-
-		//Translate extension
-		if ( verboseLogging ) printf( "%.3u: Translating path...", entry.index() );
-		entry.translatePath( fedFile.dictionary() );
-		if ( verboseLogging ) printf( "Done!: \'%ls\'\n", entry.path().c_str() );
-
-		//Translate data
-		if ( verboseLogging ) printf( "%.3u: Translating data...", entry.index() );
-		entry.translateData( fedFile.dictionary() );
 		if ( verboseLogging ) printf( "Done!\n" );
 
 		//Write data
@@ -290,7 +253,7 @@ void DecodeFile( fs::path filePath ) {
 
 int wmain( int argc, wchar_t* argv[] ) {
 
-	SetConsoleTitleW( L"FileDeen | Encoding Scheme: v4" );
+	SetConsoleTitleW( L"FileDeen | Encoding Scheme: v5" );
 
 	RNG.seed( (unsigned)time( NULL ) );
 
@@ -360,16 +323,16 @@ int wmain( int argc, wchar_t* argv[] ) {
 		cout << "WARNING: One or more file extensions are longer than three characters, which encoding does not support. Encode at your own risk." << endl;
 	}
 
-	if ( passwordEnabled && password.length() > 0 ) {
-		if ( passwordUncensored ) {
-			printf( "Password: \"%s\"\n", password.c_str() );
+	if ( keyEnabled && key.length() > 0 ) {
+		if ( keyUncensored ) {
+			printf( "Password: \"%s\"\n", key.c_str() );
 		}
 		else {
-			if ( password.length() < 3 ) {
-				printf( "Password: \"%s\"\n", string( password.size(), '*' ).c_str() );
+			if ( key.length() < 3 ) {
+				printf( "Password: \"%s\"\n", string( key.size(), '*' ).c_str() );
 			}
 			else {
-				printf( "Password: \"%c%s%c\"\n", password[0], string( password.size()-2, '*' ).c_str(), password.back() );
+				printf( "Password: \"%c%s%c\"\n", key[0], string( key.size()-2, '*' ).c_str(), key.back() );
 			}
 		}
 	}
