@@ -66,9 +66,9 @@ void FileDeen::CBCDecrypt( std::string& data, std::string key, std::vector<char>
 
 FeD_Entry::FeD_Entry( std::seed_seq initVectorSeed ) : _initVector( blockSize ) {
 	_index = NULL;
-	_pathLength = pathSize;
+	_pathLength = pathMaxSize;
 	_pathPadLength = 0;
-	_path.resize( pathSize/2 );
+	_path.resize( pathMaxSize/2 );
 	_dataLength = 0;
 	_dataPadLength = 0;
 	_checksum = NULL;

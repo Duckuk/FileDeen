@@ -9,15 +9,15 @@ namespace FileDeen {
 
 	const int signSize = 8,
 		versionSize = 1,
-		maxMetadataSize = signSize+versionSize;
+		metadataSize = signSize+versionSize;
 
 	const int indexSize = sizeof( int ),
 		initVectorSize = blockSize,
 		dataLengthSize = sizeof( size_t ),
 		paddingLengthSize = sizeof( short )*2,
-		pathSize = 256*sizeof( wchar_t ),
+		pathMaxSize = 256*sizeof( wchar_t ),
 		checksumSize = sizeof( unsigned int ),
-		entryMetadataSize = indexSize+initVectorSize+pathSize+dataLengthSize+checksumSize;
+		entryMaxMetadataSize = indexSize+initVectorSize+pathMaxSize+dataLengthSize+checksumSize;
 
 
 	unsigned short CBCEncrypt( std::string&, std::string, std::vector<char> );

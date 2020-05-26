@@ -278,7 +278,7 @@ int wmain( int argc, wchar_t* argv[] ) {
 		}
 	}
 	
-	size_t approximateSize = FileDeen::maxMetadataSize;
+	size_t approximateSize = FileDeen::metadataSize;
 	for ( auto it = filePaths.begin(); it!=filePaths.end(); ) {
 		fs::path path = *it;
 		if ( !fs::is_regular_file( path ) && !fs::is_directory( path ) ) {
@@ -288,13 +288,13 @@ int wmain( int argc, wchar_t* argv[] ) {
 		else if ( fs::is_directory( path ) ) {
 			for ( const auto& entry : fs::recursive_directory_iterator( path ) ) {
 				if ( entry.is_regular_file() ) {
-					approximateSize += fs::file_size( entry ) + FileDeen::entryMetadataSize;
+					approximateSize += fs::file_size( entry ) + FileDeen::entryMaxMetadataSize;
 				}
 			}
 			it++;
 		}
 		else {
-			approximateSize += fs::file_size( path ) + FileDeen::entryMetadataSize;
+			approximateSize += fs::file_size( path ) + FileDeen::entryMaxMetadataSize;
 			it++;
 		}
 	}
