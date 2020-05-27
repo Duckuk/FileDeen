@@ -21,14 +21,14 @@ unsigned short FileDeen::CBCEncrypt( std::string& data, std::string key, std::ve
 	unsigned short paddingLength = data.length() % blockSize;
 	data.append( paddingLength, rng() );
 	std::string prevBlock( blockSize, 0x00 );
-	for ( size_t x = 0; x < data.length(); x += blockSize ) {
-		std::string origPlain( data.substr( x, blockSize ) );
-		for ( size_t y = 0; y < blockSize; y++ ) {
-			if ( x + y >= data.length() ) {
+	for ( size_t blockStart = 0; blockStart < data.length(); blockStart += blockSize ) {
+		std::string origPlain( data.substr( blockStart, blockSize ) );
+		for ( size_t blockPos = 0; blockPos < blockSize; blockPos++ ) {
+			if ( blockStart + blockPos >= data.length() ) {
 				break;
 			}
-			data[x+y] = ((x == 0 ? initVector[y] : prevBlock[y]) ^ data[x+y]) ^ randKey[y];
-			prevBlock[y] = data[x+y] ^ origPlain[y];
+			data[blockStart+blockPos] = ((blockStart == 0 ? initVector[blockPos] : prevBlock[blockPos]) ^ data[blockStart+blockPos]) ^ randKey[blockPos];
+			prevBlock[blockPos] = data[blockStart+blockPos] ^ origPlain[blockPos];
 		}
 	}
 	return paddingLength;
@@ -49,14 +49,14 @@ void FileDeen::CBCDecrypt( std::string& data, std::string key, std::vector<char>
 
 	{
 		std::string prevBlock( blockSize, 0x00 );
-		for ( size_t x = 0; x < data.length(); x += blockSize ) {
-			std::string origCiph( data.substr( x, blockSize ) );
-			for ( size_t y = 0; y < blockSize; y++ ) {
-				if ( x + y >= data.length() ) {
+		for ( size_t blockStart = 0; blockStart < data.length(); blockStart += blockSize ) {
+			std::string origCiph( data.substr( blockStart, blockSize ) );
+			for ( size_t blockPos = 0; blockPos < blockSize; blockPos++ ) {
+				if ( blockStart + blockPos >= data.length() ) {
 					break;
 				}
-				data[x+y] = (data[x+y] ^ randKey[y]) ^ (x == 0 ? initVector[y] : prevBlock[y]);
-				prevBlock[y] = data[x+y] ^ origCiph[y];
+				data[blockStart+blockPos] = (data[blockStart+blockPos] ^ randKey[blockPos]) ^ (blockStart == 0 ? initVector[blockPos] : prevBlock[blockPos]);
+				prevBlock[blockPos] = data[blockStart+blockPos] ^ origCiph[blockPos];
 			}
 		}
 	}
