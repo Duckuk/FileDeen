@@ -20,34 +20,34 @@ namespace FileDeen {
 		entryMaxMetadataSize = indexSize+initVectorSize+pathMaxSize+dataLengthSize+checksumSize;
 
 
-	unsigned short CBCEncrypt( std::string&, std::string, std::vector<char> );
-	void CBCDecrypt( std::string&, std::string, std::vector<char> );
+	unsigned short CBCEncrypt( std::string& data, std::string key, std::vector<char> initVector );
+	void CBCDecrypt( std::string& data, std::string key, std::vector<char> initVector);
 
 	class FeD_Entry {
 	public:
-		FeD_Entry( std::seed_seq );
+		FeD_Entry( std::seed_seq initVectorSeed );
 
-		void setIndex( char*, size_t );
-		void setIndex( unsigned int );
+		void setIndex( char* data, size_t length);
+		void setIndex( unsigned int i );
 		unsigned int index() const { return _index; };
 
 		const std::vector<char> initVector() const { return _initVector; };
-		void setInitVector( std::vector<char> );
-		void regenerateInitVector( std::seed_seq );
+		void setInitVector( std::vector<char> initVector );
+		void regenerateInitVector( std::seed_seq seed );
 
-		void setPath( char*, size_t );
-		void setPath( std::wstring );
-		void setPathPadLength( unsigned short );
+		void setPath( char* data, size_t length );
+		void setPath( std::wstring path );
+		void setPathPadLength( unsigned short length );
 		std::filesystem::path path() const { return _path; };
 
 		size_t dataLength() const { return _dataLength; };
 
-		void setData( char*, size_t );
-		void setDataPadLength( unsigned short );
-		void moveData( std::string& );
+		void setData( char* data, size_t length );
+		void setDataPadLength( unsigned short length );
+		void moveData( std::string& data );
 		std::string data() const { return _data; };
 
-		void writeToFile( std::filesystem::path );
+		void writeToFile( std::filesystem::path pathToFile );
 
 	private:
 		friend class FeD;
@@ -64,19 +64,19 @@ namespace FileDeen {
 	public:
 		FeD();
 
-		void setSignature(char*, size_t);
+		void setSignature(char* data, size_t length );
 		std::string signature() const { return _signature; };
 
 		const unsigned char version() const { return _versionByte; };
 
-		void addEntry( FeD_Entry );
-		void moveEntry( FeD_Entry& );
-		void delEntry( int );
-		FeD_Entry& entry( int );
+		void addEntry( FeD_Entry entry );
+		void moveEntry( FeD_Entry& entry );
+		void delEntry( int index );
+		FeD_Entry& entry( int index );
 		std::vector<FeD_Entry> entries() const { return _entries; };
 		size_t numEntries() const { return _entries.size(); };
 
-		void writeToFile( std::filesystem::path );
+		void writeToFile( std::filesystem::path pathToFile );
 
 	private:
 		const unsigned char _versionByte = 0x05;
