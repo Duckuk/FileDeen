@@ -7,7 +7,10 @@ namespace FileDeen {
 	
 	const int blockSize = 64;
 
-	const int signSize = 8,
+	const unsigned char SIGN[8] = { 0x53, 0x30, 0x53, 0x30, 0x72, 0x7F, 0x0D, 0x54 };
+	//                               83    48    83    48   114   127    13    84
+
+	const int signSize = sizeof( SIGN ),
 		versionSize = 1,
 		metadataSize = signSize+versionSize;
 
@@ -47,7 +50,8 @@ namespace FileDeen {
 		void moveData( std::string& data );
 		std::string data() const { return _data; };
 
-		void writeToFile( std::filesystem::path pathToFile );
+		void writeToFile( std::filesystem::path filePath );
+		void writeToFile( std::filesystem::path rootFolder, bool useRealNames, bool verboseLogging );
 
 	private:
 		friend class FeD;
@@ -76,6 +80,7 @@ namespace FileDeen {
 		std::vector<FeD_Entry> entries() const { return _entries; };
 		size_t numEntries() const { return _entries.size(); };
 
+		int readFromFile( std::filesystem::path path, std::string key, bool verboseLogging );
 		void writeToFile( std::filesystem::path pathToFile );
 
 	private:
