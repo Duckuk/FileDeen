@@ -245,7 +245,7 @@ void DecodeFile( fs::path filePath ) {
 		}
 		fs::create_directories( outputFileName.parent_path() );
 		wprintf( L"%.3u: Writing to \'%ls\'...", entry.index(), outputFileName.c_str() );
-		entry.writeToFile( outputFileName );
+		entry.writeDataToFile( outputFileName );
 		printf( "Done!\n" );
 	}
 	return;

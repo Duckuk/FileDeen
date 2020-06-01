@@ -128,7 +128,7 @@ void FeD_Entry::moveData( std::string& s ) {
 	_dataLength = _data.size();
 }
 
-void FeD_Entry::writeToFile( std::filesystem::path filePath ) {
+void FeD_Entry::writeDataToFile( std::filesystem::path filePath ) {
 	std::fstream outputFile( filePath, std::ios::out | std::ios::binary | std::ios::trunc );
 	outputFile.write( &_data[0], _dataLength );
 	outputFile.close();

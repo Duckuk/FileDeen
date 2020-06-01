@@ -50,7 +50,7 @@ namespace FileDeen {
 		void moveData( std::string& data );
 		std::string data() const { return _data; };
 
-		void writeToFile( std::filesystem::path filePath );
+		void writeDataToFile( std::filesystem::path filePath );
 		void writeToFile( std::filesystem::path rootFolder, bool useRealNames, bool verboseLogging );
 
 	private:
